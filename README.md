@@ -22,7 +22,13 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
 
 1. **Install**
 
-   Download the archive for your platform from
+   With [Rust and Cargo](https://rustup.rs) installed:
+
+   ```bash
+   cargo install jegrep
+   ```
+
+   Or download the archive for your platform from
    [GitHub Releases](https://github.com/can1357/jegrep/releases/latest), extract it,
    and put `jegrep` (`jegrep.exe` on Windows) on your `PATH`. Releases include
    Linux and macOS binaries for x86-64 and ARM64, Windows x86-64 binaries, and
@@ -195,8 +201,8 @@ To publish a release, update the version in `Cargo.toml` and `Cargo.lock`, commi
 the change, then push a matching tag:
 
 ```bash
-git tag -a v0.1.0 -m "jegrep 0.1.0"
-git push origin main v0.1.0
+git tag -a v0.1.1 -m "jegrep 0.1.1"
+git push origin main v0.1.1
 ```
 
 The same checks gate tag builds. Tags must match the package version. Only after
