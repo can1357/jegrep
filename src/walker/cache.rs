@@ -404,8 +404,9 @@ where
 	E: fmt::Display,
 {
 	options.cache = false;
-	let scan =
-		crate::walker::collect_entries_native(root, options, || heartbeat().map_err(|err| err.to_string()))?;
+	let scan = crate::walker::collect_entries_native(root, options, || {
+		heartbeat().map_err(|err| err.to_string())
+	})?;
 	scan_seam();
 	Ok(scan)
 }

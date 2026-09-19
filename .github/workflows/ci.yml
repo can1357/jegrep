@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  checks:
+    name: Format, lint, and benchmark tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - name: Validate package and release version
+        id: metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import tomllib
+
+          package = tomllib.loads(Path("Cargo.toml").read_text())["package"]
+          version = package["version"]
+          assert package["name"] == "jegrep", "unexpected package name"
+          if os.environ["GITHUB_REF_TYPE"] == "tag":
+              assert os.environ["GITHUB_REF_NAME"] == f"v{version}", "tag must match Cargo.toml version"
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"version={version}\n")
+          PY
+      - name: Install repository Rust toolchain
+        run: rustup show
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check configured lints
+        run: cargo clippy --locked --all-targets
+      - name: Test benchmark runner
+        run: python -m unittest discover -s benches -p 'test_*.py'
+
+  build:
+    name: Build and test (${{ matrix.target }})
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos-15
+            target: aarch64-apple-darwin
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+    defaults:
+      run:
+        shell: bash
+    env:
+      TARGET: ${{ matrix.target }}
+      VERSION: ${{ needs.checks.outputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.13"
+      - name: Install repository Rust toolchain
+        run: rustup show
+      - name: Test
+        run: cargo test --locked --all-targets --target "$TARGET"
+      - name: Build release binary
+        run: cargo build --locked --release --target "$TARGET"
+      - name: Smoke-test release binary
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import subprocess
+
+          binary = Path("target") / os.environ["TARGET"] / "release" / ("jegrep.exe" if os.name == "nt" else "jegrep")
+          version = subprocess.check_output([binary, "--version"], text=True).strip()
+          assert version == f"jegrep {os.environ['VERSION']}", version
+          subprocess.run([binary, "--help"], check=True)
+          subprocess.run([binary, "--list-strategies"], check=True)
+          PY
+      - name: Package release archive
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          target = os.environ["TARGET"]
+          stem = f"jegrep-v{os.environ['VERSION']}-{target}"
+          binary = "jegrep.exe" if os.name == "nt" else "jegrep"
+          files = {
+              binary: Path("target") / target / "release" / binary,
+              "README.md": Path("README.md"),
+              "LICENSE": Path("LICENSE"),
+              "LICENSE-walker": Path("src/walker/LICENSE"),
+          }
+          Path("dist").mkdir()
+          if os.name == "nt":
+              with zipfile.ZipFile(f"dist/{stem}.zip", "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                  for name, path in files.items():
+                      archive.write(path, f"{stem}/{name}")
+          else:
+              with tarfile.open(f"dist/{stem}.tar.gz", "w:gz") as archive:
+                  for name, path in files.items():
+                      archive.add(path, arcname=f"{stem}/{name}")
+          PY
+      - name: Upload release archive
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: jegrep-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: [checks, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: jegrep-*
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums and publish
+        working-directory: dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          sha256sum jegrep-* > SHA256SUMS
+          options=()
+          if [[ "$TAG" == *-* ]]; then
+            options+=(--prerelease)
+          fi
+          gh release create "$TAG" --verify-tag --draft --title "jegrep $TAG" \
+            --generate-notes "${options[@]}" jegrep-* SHA256SUMS
+          gh release edit "$TAG" --draft=false

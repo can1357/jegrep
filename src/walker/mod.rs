@@ -27,13 +27,14 @@ use std::{
 	io::{self, BufRead},
 	path::{Path, PathBuf},
 	sync::{
-		Arc, Mutex,
+		Arc,
 		atomic::{AtomicBool, Ordering as AtomicOrdering},
 	},
 };
 
 use cache::{empty_recheck_ms, parallel_for_each, parallel_for_each_init, walk_workers};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
+use parking_lot::Mutex;
 
 const HEARTBEAT_INTERVAL: usize = 128;
 
@@ -1325,10 +1326,7 @@ impl<'a, E, S, H> ParallelWalkShared<'a, E, S, H> {
 	}
 
 	fn record_error(&self, error: E) {
-		let mut slot = match self.error.lock() {
-			Ok(slot) => slot,
-			Err(poisoned) => poisoned.into_inner(),
-		};
+		let mut slot = self.error.lock();
 		if slot.is_none() {
 			*slot = Some(error);
 		}
@@ -1336,10 +1334,7 @@ impl<'a, E, S, H> ParallelWalkShared<'a, E, S, H> {
 	}
 
 	fn take_error(&self) -> Option<E> {
-		match self.error.lock() {
-			Ok(mut slot) => slot.take(),
-			Err(poisoned) => poisoned.into_inner().take(),
-		}
+		self.error.lock().take()
 	}
 }
 
@@ -4346,8 +4341,7 @@ mod tests {
 		time::{Duration, SystemTime, UNIX_EPOCH},
 	};
 
-	use super::cache::invalidate_path;
-	use super::*;
+	use super::{cache::invalidate_path, *};
 
 	struct TempTree {
 		root: PathBuf,

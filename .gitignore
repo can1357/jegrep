@@ -1,4 +1,5 @@
-target/
-bench/*.jsonl
-bench/runs/
-bench/__pycache__/
+/target/
+/benches/runs/
+__pycache__/
+.env
+.env.*

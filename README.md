@@ -4,8 +4,8 @@
   </a>
   <h1>jegrep</h1>
   <p><em>Jevantic grep: describe it, find it.</em></p>
-  <a href="https://crates.io/crates/jegrep"><img src="https://img.shields.io/crates/v/jegrep.svg" alt="Crates.io" /></a>
-  <a href="https://crates.io/crates/jegrep"><img src="https://img.shields.io/crates/d/jegrep.svg" alt="Downloads" /></a>
+  <a href="https://github.com/can1357/jegrep/actions/workflows/ci.yml"><img src="https://github.com/can1357/jegrep/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/can1357/jegrep/releases/latest"><img src="https://img.shields.io/github/v/release/can1357/jegrep" alt="GitHub release" /></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" /></a>
 </div>
 
@@ -22,11 +22,13 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
 
 1. **Install**
 
-   ```bash
-   cargo install jegrep
-   ```
+   Download the archive for your platform from
+   [GitHub Releases](https://github.com/can1357/jegrep/releases/latest), extract it,
+   and put `jegrep` (`jegrep.exe` on Windows) on your `PATH`. Releases include
+   Linux and macOS binaries for x86-64 and ARM64, Windows x86-64 binaries, and
+   `SHA256SUMS` checksums. Linux binaries require glibc 2.39 or newer.
 
-   Or build from source:
+   Or build from source with [rustup](https://rustup.rs):
 
    ```bash
    git clone https://github.com/can1357/jegrep
@@ -182,6 +184,26 @@ To verify the publishable package without uploading it:
 ```bash
 cargo publish --dry-run
 ```
+
+## CI and Releases
+
+GitHub Actions checks formatting, the configured Clippy lints, and the Python
+benchmark-runner tests. It runs Rust tests and builds and smoke-tests release
+binaries on all five supported platforms for pull requests and pushes to `main`.
+
+To publish a release, update the version in `Cargo.toml` and `Cargo.lock`, commit
+the change, then push a matching tag:
+
+```bash
+git tag -a v0.1.0 -m "jegrep 0.1.0"
+git push origin main v0.1.0
+```
+
+The same checks gate tag builds. Tags must match the package version. Only after
+every job passes does CI publish a GitHub Release with archives, licenses, and
+checksums; versions with a prerelease suffix are marked as prereleases.
+Publishing uses the repository's automatic `GITHUB_TOKEN`; no release secret is
+required. crates.io publishing is separate and is not enabled by this workflow.
 
 ## License
 
