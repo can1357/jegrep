@@ -1,0 +1,9 @@
+{
+  "query": "How does TCP grow or shrink its congestion window in response to ACKs and packet loss?",
+  "keywords": ["tcp_slow_start", "tcp_cong_avoid_ai", "tcp_reno_cong_avoid", "tcp_reno_ssthresh", "tcp_enter_loss", "tcp_cwnd_reduction", "snd_cwnd_cnt", "ssthresh"],
+  "matches": [
+    {"file": "net/ipv4/tcp_cong.c", "start_line": 456, "end_line": 512, "symbol": "tcp_slow_start / tcp_cong_avoid_ai / tcp_reno_cong_avoid", "reason": "Core generic slow-start and additive-increase congestion-avoidance logic invoked on every ACK to grow cwnd."},
+    {"file": "net/ipv4/tcp_input.c", "start_line": 2554, "end_line": 2599, "symbol": "tcp_enter_loss", "reason": "Authoritative handler that shrinks ssthresh/cwnd when packet loss (RTO) is detected."},
+    {"file": "net/ipv4/tcp_input.c", "start_line": 2985, "end_line": 3011, "symbol": "tcp_cwnd_reduction", "reason": "Implements PRR-based multiplicative cwnd reduction during fast recovery as ACKs/SACKs arrive after loss."}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "query": "How does epoll wait for events on file descriptors and wake up when one becomes ready?",
+  "keywords": ["ep_poll_callback", "ep_poll", "rdllist", "ep->wq", "wake_up", "waitqueue_active", "ep_events_available", "schedule_hrtimeout_range"],
+  "matches": [
+    {"file": "fs/eventpoll.c", "start_line": 1491, "end_line": 1603, "symbol": "ep_poll_callback", "reason": "Wait-queue callback invoked when a monitored file becomes ready; adds the item to the ready list and wakes tasks blocked in epoll_wait."},
+    {"file": "fs/eventpoll.c", "start_line": 2255, "end_line": 2376, "symbol": "ep_poll", "reason": "Core epoll_wait loop: checks for ready events, sleeps on ep->wq with a timeout, and harvests events once woken."}
+  ]
+}

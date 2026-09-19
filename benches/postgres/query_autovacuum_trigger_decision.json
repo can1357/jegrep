@@ -1,0 +1,7 @@
+{
+  "query": "What logic decides whether a table needs autovacuum or auto-analyze based on how many rows changed?",
+  "keywords": ["relation_needs_vacanalyze", "vac_scale_factor", "anl_scale_factor", "dead_tuples", "mod_since_analyze", "ins_since_vacuum", "vacthresh"],
+  "matches": [
+    {"file": "src/backend/postmaster/autovacuum.c", "start_line": 2967, "end_line": 3318, "symbol": "relation_needs_vacanalyze", "reason": "The authoritative function (with its explanatory header comment) that computes vacuum/insert/analyze thresholds from reltuples and pgstat tuple-change counters and decides *dovacuum/*doanalyze for a relation."}
+  ]
+}

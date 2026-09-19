@@ -1,0 +1,10 @@
+{
+  "query": "How does the VFS look up a path component in the dentry cache before falling back to the filesystem?",
+  "keywords": ["lookup_fast", "lookup_slow", "walk_component", "__d_lookup", "__d_lookup_rcu", "d_revalidate", "i_op->lookup", "d_hash"],
+  "matches": [
+    {"file": "fs/namei.c", "start_line": 2265, "end_line": 2289, "symbol": "walk_component", "reason": "Orchestrates the per-component walk: tries lookup_fast (dcache) first and only calls lookup_slow (filesystem ->lookup) on a cache miss."},
+    {"file": "fs/namei.c", "start_line": 1843, "end_line": 1890, "symbol": "lookup_fast", "reason": "Performs the racy/RCU dentry-cache lookup via __d_lookup_rcu/__d_lookup and revalidates it, returning NULL on a cache miss to trigger the slow path."},
+    {"file": "fs/dcache.c", "start_line": 2587, "end_line": 2641, "symbol": "__d_lookup", "reason": "Core dentry-cache hash-table search comparing name and parent under RCU, the actual cache lookup primitive used by lookup_fast."},
+    {"file": "fs/namei.c", "start_line": 1893, "end_line": 1940, "symbol": "__lookup_slow / lookup_slow", "reason": "Fallback path invoked when the dentry isn't found in cache; allocates a dentry and calls the filesystem's inode ->lookup() method."}
+  ]
+}

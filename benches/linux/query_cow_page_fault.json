@@ -1,0 +1,8 @@
+{
+  "query": "How does the kernel handle a copy-on-write page fault when a process writes to a shared read-only page?",
+  "keywords": ["do_wp_page", "wp_page_copy", "wp_page_reuse", "wp_can_reuse_anon_folio", "FAULT_FLAG_UNSHARE", "PageAnonExclusive", "folio_add_new_anon_rmap", "COW_KSM"],
+  "matches": [
+    {"file": "mm/memory.c", "start_line": 4358, "end_line": 4473, "symbol": "do_wp_page", "reason": "Main dispatcher invoked on a write fault to a present, write-protected PTE; decides whether the anon page can be reused in place or must be copied (COW), and calls wp_page_copy for the shared/private copy path."},
+    {"file": "mm/memory.c", "start_line": 3985, "end_line": 4134, "symbol": "wp_page_copy", "reason": "Core copy-on-write implementation: allocates a new page, copies the old shared page's content, revalidates the PTE, and installs the new writable anonymous mapping while dropping the reference to the old shared page."}
+  ]
+}

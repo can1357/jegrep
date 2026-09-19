@@ -1,0 +1,10 @@
+{
+  "query": "How does the server parse postgresql.conf and apply configuration parameter values at startup or reload?",
+  "keywords": ["ProcessConfigFile", "ParseConfigFp", "ProcessConfigFileInternal", "set_config_option", "PGC_S_FILE", "ConfigVariable"],
+  "matches": [
+    {"file": "src/backend/utils/misc/guc-file.l", "start_line": 119, "end_line": 158, "symbol": "ProcessConfigFile", "reason": "Entry point invoked at postmaster startup and on SIGHUP that kicks off reading and applying postgresql.conf."},
+    {"file": "src/backend/utils/misc/guc-file.l", "start_line": 349, "end_line": 581, "symbol": "ParseConfigFp", "reason": "The flex-driven lexer/parser that tokenizes postgresql.conf into name=value pairs, handling comments, quoting, and include directives."},
+    {"file": "src/backend/utils/misc/guc.c", "start_line": 284, "end_line": 626, "symbol": "ProcessConfigFileInternal", "reason": "Validates the parsed config-file entries against known GUCs, reverts removed parameters to defaults, and loops through calling set_config_option to apply each value at startup/reload."},
+    {"file": "src/backend/utils/misc/guc.c", "start_line": 3327, "end_line": 4195, "symbol": "set_config_with_handle", "reason": "Core routine (backing set_config_option/set_config_option_ext) that type-checks, runs hooks, and actually commits each individual configuration parameter's new value."}
+  ]
+}

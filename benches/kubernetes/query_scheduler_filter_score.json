@@ -1,0 +1,9 @@
+{
+  "query": "How does the Kubernetes scheduler filter and score nodes to decide where to place a pod?",
+  "keywords": ["SchedulePod", "findNodesThatPassFilters", "findNodesThatFitPod", "prioritizeNodes", "RunFilterPluginsWithNominatedPods", "RunScorePlugins", "numFeasibleNodesToFind", "NodePluginScores"],
+  "matches": [
+    {"file": "pkg/scheduler/algorithm.go", "start_line": 136, "end_line": 190, "symbol": "SchedulingAlgorithm.SchedulePod", "reason": "Top-level scheduling algorithm that filters nodes via findNodesThatFitPod, scores them via prioritizeNodes, and selects the winning host for the pod."},
+    {"file": "pkg/scheduler/algorithm.go", "start_line": 322, "end_line": 405, "symbol": "SchedulingAlgorithm.findNodesThatPassFilters", "reason": "Runs the framework's Filter plugins in parallel over nodes to compute the feasible node set, the core node-filtering logic."},
+    {"file": "pkg/scheduler/schedule_one.go", "start_line": 565, "end_line": 676, "symbol": "prioritizeNodes", "reason": "Runs PreScore/Score plugins and scoring extenders to compute per-node scores used to rank feasible nodes for placement."}
+  ]
+}

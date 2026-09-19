@@ -1,0 +1,8 @@
+{
+  "query": "How does the API server detect a resourceVersion conflict and reject a stale update?",
+  "keywords": ["GuaranteedUpdate", "OptimisticLockErrorMsg", "existingResourceVersion", "NewConflict", "ObjectResourceVersion", "OptimisticPut", "doUnconditionalUpdate", "preconditions.Check"],
+  "matches": [
+    {"file": "staging/src/k8s.io/apiserver/pkg/registry/generic/registry/store.go", "start_line": 711, "end_line": 920, "symbol": "Store.Update", "reason": "Compares the client-supplied resourceVersion against the current object's resourceVersion inside the GuaranteedUpdate tryUpdate callback and returns apierrors.NewConflict when they differ, which is the API server's stale-update rejection."},
+    {"file": "staging/src/k8s.io/apiserver/pkg/storage/etcd3/store.go", "start_line": 477, "end_line": 641, "symbol": "(*store).GuaranteedUpdate", "reason": "Underlying optimistic-concurrency loop that runs the update function against a consistently-read object and performs an etcd compare-and-swap on the stored revision, retrying (and surfacing conflict errors) when the object changed underneath the update."}
+  ]
+}

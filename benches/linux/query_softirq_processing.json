@@ -1,0 +1,9 @@
+{
+  "query": "How are softirqs processed after a hardware interrupt handler returns?",
+  "keywords": ["irq_exit", "irq_exit_rcu", "invoke_softirq", "handle_softirqs", "__do_softirq", "local_softirq_pending", "softirq_vec", "wakeup_softirqd"],
+  "matches": [
+    {"file": "kernel/softirq.c", "start_line": 743, "end_line": 791, "symbol": "irq_exit/__irq_exit_rcu", "reason": "This is the exit path invoked right after a hardware interrupt handler returns; it checks for pending softirqs and triggers their processing."},
+    {"file": "kernel/softirq.c", "start_line": 602, "end_line": 680, "symbol": "handle_softirqs/__do_softirq", "reason": "Core loop that actually dequeues and runs each pending softirq vector's action function, with restart/time limits."},
+    {"file": "kernel/softirq.c", "start_line": 510, "end_line": 531, "symbol": "invoke_softirq", "reason": "Called from irq_exit to decide whether to run softirqs inline on the current stack or defer to the ksoftirqd kernel thread."}
+  ]
+}

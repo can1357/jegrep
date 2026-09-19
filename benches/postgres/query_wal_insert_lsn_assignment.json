@@ -1,0 +1,9 @@
+{
+  "query": "How does Postgres assign a WAL LSN and reserve space in the WAL buffers when inserting a new WAL record?",
+  "keywords": ["XLogInsertRecord", "ReserveXLogInsertLocation", "CurrBytePos", "insertpos_lck", "GetXLogBuffer", "XLogBytePosToRecPtr", "AdvanceXLInsertBuffer"],
+  "matches": [
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 837, "end_line": 1185, "symbol": "XLogInsertRecord", "reason": "Top-level WAL insertion routine that reserves space, fills in xl_prev/CRC, copies the record into WAL buffers, and returns the end LSN, implementing the documented two-step reserve-then-copy protocol."},
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 1205, "end_line": 1250, "symbol": "ReserveXLogInsertLocation", "reason": "The spinlock-protected core that atomically advances Insert->CurrBytePos to reserve exactly 'size' bytes of WAL and converts the byte position into the actual XLogRecPtr (LSN) for StartPos/EndPos/xl_prev."},
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 1729, "end_line": 1829, "symbol": "GetXLogBuffer", "reason": "Maps a reserved WAL location to its slot in the shared WAL buffer cache, initializing a new buffer page via AdvanceXLInsertBuffer if the space isn't yet backed by an in-memory page."}
+  ]
+}

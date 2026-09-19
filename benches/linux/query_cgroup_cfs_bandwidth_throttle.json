@@ -1,0 +1,10 @@
+{
+  "query": "How does the CFS scheduler throttle a cgroup's tasks when it exceeds its allotted CPU bandwidth quota?",
+  "keywords": ["throttle_cfs_rq", "unthrottle_cfs_rq", "__assign_cfs_rq_runtime", "account_cfs_rq_runtime", "cfs_bandwidth", "runtime_remaining", "distribute_cfs_runtime", "do_sched_cfs_period_timer"],
+  "matches": [
+    {"file": "kernel/sched/fair.c", "start_line": 6677, "end_line": 6701, "symbol": "__account_cfs_rq_runtime / account_cfs_rq_runtime", "reason": "Deducts consumed runtime from the cfs_rq's quota on each tick and triggers throttling once runtime_remaining is exhausted."},
+    {"file": "kernel/sched/fair.c", "start_line": 6986, "end_line": 7049, "symbol": "throttle_cfs_rq", "reason": "Core throttle implementation: tries to grab more bandwidth, otherwise adds the cfs_rq to the cgroup's throttled list, marks it throttled, and dequeues its runnable averages, effectively stopping the group's tasks from running."},
+    {"file": "kernel/sched/fair.c", "start_line": 7051, "end_line": 7106, "symbol": "unthrottle_cfs_rq", "reason": "Counterpart that re-enables a throttled cfs_rq once new bandwidth/runtime becomes available, restoring it to the runqueue hierarchy."},
+    {"file": "kernel/sched/fair.c", "start_line": 7264, "end_line": 7301, "symbol": "do_sched_cfs_period_timer", "reason": "Periodic bandwidth refill/redistribution logic run each cfs_period that replenishes quota and triggers unthrottling of queued cfs_rqs."}
+  ]
+}

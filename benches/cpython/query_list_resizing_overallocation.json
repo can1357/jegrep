@@ -1,0 +1,8 @@
+{
+  "query": "How does CPython's list object grow its underlying array with over-allocation when appending?",
+  "keywords": ["list_resize", "new_allocated", "PyMem_Realloc", "ob_item", "self->allocated", "_PyList_AppendTakeRefListResize", "PyListObject"],
+  "matches": [
+    {"file": "Objects/listobject.c", "start_line": 94, "end_line": 195, "symbol": "list_resize", "reason": "Core routine that resizes the list's backing array, computing new_allocated with the mild over-allocation formula (0,4,8,16,24,...) to give amortized O(1) appends, then reallocs/copies the array."},
+    {"file": "Objects/listobject.c", "start_line": 524, "end_line": 536, "symbol": "_PyList_AppendTakeRefListResize", "reason": "Shows how list append invokes list_resize(self, len+1) to grow the array before storing the new item, tying the append operation to the over-allocation logic."}
+  ]
+}

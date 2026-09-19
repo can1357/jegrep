@@ -1,0 +1,10 @@
+{
+  "query": "How does CPython unwind the stack and build a traceback when an exception propagates through bytecode execution?",
+  "keywords": ["PyTraceBack_Here", "tb_create_raw", "get_exception_handler", "exception_unwind", "exit_unwind", "co_exceptiontable", "_PyTraceBack_FromFrame", "monitor_unwind"],
+  "matches": [
+    {"file": "Python/bytecodes.c", "start_line": 6456, "end_line": 6573, "symbol": "error / exception_unwind / exit_unwind", "reason": "Core interpreter logic: on error records the frame into the traceback, finds the exception-table handler, unwinds/closes the value stack to it, or pops the whole frame and continues unwinding into the caller."},
+    {"file": "Python/ceval.h", "start_line": 457, "end_line": 505, "symbol": "get_exception_handler", "reason": "Searches the code object's exception table to find the handler offset and target stack depth used by the unwind loop above."},
+    {"file": "Python/traceback.c", "start_line": 303, "end_line": 329, "symbol": "_PyTraceBack_FromFrame / PyTraceBack_Here", "reason": "Entry points called by the interpreter's error path to prepend the current frame onto the exception's traceback chain as it propagates."},
+    {"file": "Python/traceback.c", "start_line": 77, "end_line": 96, "symbol": "tb_create_raw", "reason": "Allocates and links the actual PyTracebackObject node representing one frame in the traceback linked list."}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "query": "How does the kubelet reconcile a pod's desired spec against its actual running containers?",
+  "keywords": ["computePodActions", "SyncPod", "ContainersToStart", "ContainersToKill", "podActions", "PodSandboxChanged", "kubeGenericRuntimeManager"],
+  "matches": [
+    {"file": "pkg/kubelet/kuberuntime/kuberuntime_manager.go", "start_line": 1272, "end_line": 1491, "symbol": "(m *kubeGenericRuntimeManager) computePodActions", "reason": "Diffs the pod's desired spec (init/regular containers, sandbox, resources) against podStatus (actual running containers) and produces a podActions plan of what to kill, start, or resize."},
+    {"file": "pkg/kubelet/kuberuntime/kuberuntime_manager.go", "start_line": 1576, "end_line": 1956, "symbol": "(m *kubeGenericRuntimeManager) SyncPod", "reason": "The authoritative reconciliation entrypoint that executes the computed podActions: killing the sandbox/containers that shouldn't exist and creating the sandbox, init, ephemeral, and regular containers to match the desired spec."}
+  ]
+}

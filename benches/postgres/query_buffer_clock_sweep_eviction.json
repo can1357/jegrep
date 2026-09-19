@@ -1,0 +1,8 @@
+{
+  "query": "What algorithm picks which shared buffer to evict when a new page needs to be read into the buffer pool?",
+  "keywords": ["ClockSweepTick", "StrategyGetBuffer", "nextVictimBuffer", "clock sweep", "BUF_STATE_GET_USAGECOUNT", "completePasses"],
+  "matches": [
+    {"file": "src/backend/storage/buffer/freelist.c", "start_line": 109, "end_line": 166, "symbol": "ClockSweepTick", "reason": "Implements the clock-hand advancement primitive that cycles through NBuffers, the core mechanic of the clock-sweep eviction algorithm."},
+    {"file": "src/backend/storage/buffer/freelist.c", "start_line": 183, "end_line": 317, "symbol": "StrategyGetBuffer", "reason": "The authoritative function that selects an evictable shared buffer by repeatedly ticking the clock hand and decrementing usage counts until an unpinned, zero-usage-count buffer is pinned as the victim."}
+  ]
+}

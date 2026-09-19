@@ -1,0 +1,6 @@
+{
+  "name": "linux",
+  "remote": "https://github.com/torvalds/linux.git",
+  "local": "/tmp/grep-bench-target-linux",
+  "hash": "40288c9206c17eb66a603262e06a58d300d0f279"
+}

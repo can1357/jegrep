@@ -1,0 +1,10 @@
+{
+  "query": "How does the API server invoke mutating and validating admission webhooks on an incoming request?",
+  "keywords": ["ShouldCallHook", "Dispatch", "callAttrMutatingHook", "callHook", "mutatingDispatcher", "validatingDispatcher", "VerifyAdmissionResponse", "CreateAdmissionObjects"],
+  "matches": [
+    {"file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/webhook.go", "start_line": 409, "end_line": 433, "symbol": "Webhook.Dispatch", "reason": "Top-level entry point called by the mutating/validating admission plugins' Admit/Validate methods; fetches the matched webhook set and hands off to the type-specific dispatcher."},
+    {"file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/generic/webhook.go", "start_line": 298, "end_line": 385, "symbol": "Webhook.ShouldCallHook", "reason": "Shared logic deciding whether a given webhook applies to the request (namespace/object selectors, rule matching, match conditions) before it is invoked."},
+    {"file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/mutating/dispatcher.go", "start_line": 105, "end_line": 391, "symbol": "mutatingDispatcher.Dispatch / callAttrMutatingHook", "reason": "Core sequential invocation of mutating webhooks (with reinvocation handling) and the per-webhook HTTP call that sends the AdmissionReview and applies the returned JSON patch."},
+    {"file": "staging/src/k8s.io/apiserver/pkg/admission/plugin/webhook/validating/dispatcher.go", "start_line": 88, "end_line": 333, "symbol": "validatingDispatcher.Dispatch / callHook", "reason": "Core parallel invocation of validating webhooks and the per-webhook HTTP call that sends the AdmissionReview and checks the Allowed result."}
+  ]
+}

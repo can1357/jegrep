@@ -1,0 +1,10 @@
+{
+  "query": "How does an informer's reflector list and watch API objects to keep a local cache in sync?",
+  "keywords": ["ListAndWatchWithContext", "handleAnyWatch", "watchWithResync", "syncWith", "listerWatcher", "LastSyncResourceVersion", "store.Replace", "watchList"],
+  "matches": [
+    {"file": "staging/src/k8s.io/client-go/tools/cache/reflector.go", "start_line": 470, "end_line": 509, "symbol": "Reflector.ListAndWatchWithContext", "reason": "Top-level entry point that lists all objects to seed the cache, then transitions to watching for incremental updates."},
+    {"file": "staging/src/k8s.io/client-go/tools/cache/reflector.go", "start_line": 674, "end_line": 783, "symbol": "Reflector.list", "reason": "Performs the paginated List call to the API server and replaces the store's contents to establish the initial cache state."},
+    {"file": "staging/src/k8s.io/client-go/tools/cache/reflector.go", "start_line": 561, "end_line": 670, "symbol": "Reflector.watch", "reason": "Opens and maintains the Watch stream against the API server, with retry/backoff, feeding events to the store-update handler."},
+    {"file": "staging/src/k8s.io/client-go/tools/cache/reflector.go", "start_line": 972, "end_line": 1095, "symbol": "handleAnyWatch", "reason": "Consumes each watch event and applies Add/Update/Delete/Bookmark to the Store, which is the core mechanism keeping the local cache in sync."}
+  ]
+}

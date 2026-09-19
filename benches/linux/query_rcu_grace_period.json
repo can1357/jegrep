@@ -1,0 +1,10 @@
+{
+  "query": "How does RCU detect that a grace period has completed so it can safely free old data?",
+  "keywords": ["rcu_gp_fqs_loop", "rcu_gp_cleanup", "rcu_seq_completed_gp", "rcu_advance_cbs", "qsmask", "RCU_DONE_TAIL", "rcu_seq_end", "gp_seq"],
+  "matches": [
+    {"file": "kernel/rcu/tree.c", "start_line": 2091, "end_line": 2172, "symbol": "rcu_gp_fqs_loop", "reason": "Core kthread loop that polls rcu_node qsmask and forces quiescent states, breaking out precisely when it detects the grace period has ended."},
+    {"file": "kernel/rcu/tree.c", "start_line": 2177, "end_line": 2299, "symbol": "rcu_gp_cleanup", "reason": "Finalizes a detected grace-period end by advancing gp_seq via rcu_seq_end() and propagating completion to all rcu_node structures."},
+    {"file": "kernel/rcu/tree.c", "start_line": 1215, "end_line": 1232, "symbol": "rcu_advance_cbs", "reason": "Moves callbacks whose grace period has completed into the done sublist, which is the step that makes it safe to invoke/free the old data."},
+    {"file": "kernel/rcu/rcu.h", "start_line": 192, "end_line": 195, "symbol": "rcu_seq_completed_gp", "reason": "The fundamental sequence-number comparison primitive used to decide whether a grace period has completed since a given snapshot."}
+  ]
+}

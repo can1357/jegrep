@@ -1,0 +1,8 @@
+{
+  "query": "How does asyncio's selector event loop wait for I/O readiness and dispatch callbacks?",
+  "keywords": ["_run_once", "_process_events", "self._selector.select(timeout)", "EVENT_READ", "EVENT_WRITE", "_add_callback", "BaseSelectorEventLoop", "run_forever"],
+  "matches": [
+    {"file": "Lib/asyncio/base_events.py", "start_line": 2007, "end_line": 2091, "symbol": "BaseEventLoop._run_once", "reason": "Core loop iteration: computes poll timeout from scheduled callbacks, calls selector.select() to wait for I/O readiness, dispatches resulting events via _process_events, then runs all ready callback handles."},
+    {"file": "Lib/asyncio/selector_events.py", "start_line": 752, "end_line": 764, "symbol": "BaseSelectorEventLoop._process_events", "reason": "Translates the selector's returned (key, mask) events into read/write readiness, queuing the registered reader/writer callbacks via _add_callback or removing cancelled ones."}
+  ]
+}

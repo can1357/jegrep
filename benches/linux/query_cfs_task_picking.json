@@ -1,0 +1,10 @@
+{
+  "query": "How does the CFS scheduler pick the next task to run based on virtual runtime?",
+  "keywords": ["pick_eevdf", "pick_next_entity", "pick_task_fair", "entity_eligible", "vruntime_eligible", "min_vruntime", "tasks_timeline", "EEVDF"],
+  "matches": [
+    {"file": "kernel/sched/fair.c", "start_line": 1187, "end_line": 1256, "symbol": "pick_eevdf", "reason": "Core EEVDF algorithm: walks the augmented rb-tree keyed on vruntime/deadline to select the eligible entity (owed service based on vruntime) with the earliest virtual deadline."},
+    {"file": "kernel/sched/fair.c", "start_line": 6517, "end_line": 6532, "symbol": "pick_next_entity", "reason": "Wrapper that invokes pick_eevdf() to choose the scheduling entity and handles delayed dequeue before returning it as the next entity."},
+    {"file": "kernel/sched/fair.c", "start_line": 10054, "end_line": 10087, "symbol": "pick_task_fair", "reason": "Top-level CFS scheduling-class hook (fair_sched_class.pick_task) that updates the current runtime and calls pick_next_entity to obtain the actual next task to run."},
+    {"file": "kernel/sched/fair.c", "start_line": 1110, "end_line": 1118, "symbol": "__pick_first_entity", "reason": "Returns the leftmost (smallest vruntime/deadline) entity in the CFS runqueue's rb-tree, used as the starting candidate in pick_eevdf."}
+  ]
+}

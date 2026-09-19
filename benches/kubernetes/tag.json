@@ -1,0 +1,6 @@
+{
+  "name": "kubernetes",
+  "remote": "https://github.com/kubernetes/kubernetes.git",
+  "local": "/tmp/grep-bench-target-k8s",
+  "hash": "96b5e4e3ae3f8d7aa50d360cf57f01eaba61f855"
+}

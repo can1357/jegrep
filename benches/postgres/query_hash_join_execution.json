@@ -1,0 +1,9 @@
+{
+  "query": "How is a hash join executed: building the hash table from one side and probing it with the other?",
+  "keywords": ["ExecHashJoinImpl", "MultiExecPrivateHash", "ExecScanHashBucket", "HJ_BUILD_HASHTABLE", "HJ_NEED_NEW_OUTER", "ExecHashTableInsert", "HJ_SCAN_BUCKET"],
+  "matches": [
+    {"file": "src/backend/executor/nodeHashjoin.c", "start_line": 224, "end_line": 793, "symbol": "ExecHashJoinImpl", "reason": "The hybrid hash-join state machine that orchestrates building the inner hash table then looping over outer tuples to probe it, advancing through batches until the join is complete."},
+    {"file": "src/backend/executor/nodeHash.c", "start_line": 138, "end_line": 223, "symbol": "MultiExecPrivateHash", "reason": "Implements the build phase: reads every tuple from the inner child, computes its hash value, and inserts it into the hash table (or spills it to a batch file), constructing the hash table used for probing."},
+    {"file": "src/backend/executor/nodeHash.c", "start_line": 2007, "end_line": 2066, "symbol": "ExecScanHashBucket", "reason": "Implements the probe phase: walks the bucket chain for the current outer tuple's hash value and evaluates the join clause to find matching inner tuples."}
+  ]
+}

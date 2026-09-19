@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Lid Gradients -->
+    <radialGradient id="lidFill" cx="42%" cy="32%" r="78%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#f1f5f9"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </radialGradient>
+    
+    <!-- Red Peg Gradient (Vibrant scarlet) -->
+    <linearGradient id="pegGrad" x1="15%" y1="15%" x2="85%" y2="85%">
+      <stop offset="0%" stop-color="#ff4757"/>
+      <stop offset="45%" stop-color="#ee2238"/>
+      <stop offset="100%" stop-color="#b91024"/>
+    </linearGradient>
+
+    <!-- Hole Depths -->
+    <linearGradient id="holeDepth" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#08090d"/>
+      <stop offset="100%" stop-color="#161b24"/>
+    </linearGradient>
+
+    <!-- Drop Shadows with generous filter region -->
+    <filter id="markLidShadow" x="-35%" y="-30%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="pegGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#ee2238" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <!-- Circular Lid Body -->
+  <g filter="url(#markLidShadow)">
+    <circle cx="256" cy="246" r="175" fill="url(#lidFill)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="256" cy="246" r="173" fill="none" stroke="#ffffff" stroke-width="2" stroke-opacity="0.9"/>
+  </g>
+
+  <!-- 1. LEFT: CIRCLE HOLE (Empty) -->
+  <g id="hole-circle">
+    <circle cx="166" cy="246" r="30" fill="url(#holeDepth)"/>
+    <circle cx="166" cy="246" r="30" fill="none" stroke="#000000" stroke-width="2.5" stroke-opacity="0.3"/>
+    <circle cx="166" cy="246" r="30" fill="none" stroke="#64748b" stroke-width="1.5" stroke-opacity="0.6"/>
+  </g>
+
+  <!-- 2. RIGHT: TRIANGLE HOLE (Empty) -->
+  <g id="hole-triangle">
+    <polygon points="256,212 290,271 222,271" transform="translate(90, 0)" fill="url(#holeDepth)" stroke-linejoin="round"/>
+    <polygon points="256,212 290,271 222,271" transform="translate(90, 0)" fill="none" stroke="#000000" stroke-width="2.5" stroke-opacity="0.3" stroke-linejoin="round"/>
+    <polygon points="256,212 290,271 222,271" transform="translate(90, 0)" fill="none" stroke="#64748b" stroke-width="1.5" stroke-opacity="0.6" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 3. BOTTOM: ARCH HOLE (Empty) -->
+  <g id="hole-arch">
+    <path d="M 229,363 L 229,327 A 27 27 0 0 1 283,327 L 283,363 Z" fill="url(#holeDepth)" stroke-linejoin="round"/>
+    <path d="M 229,363 L 229,327 A 27 27 0 0 1 283,327 L 283,363 Z" fill="none" stroke="#000000" stroke-width="2.5" stroke-opacity="0.3" stroke-linejoin="round"/>
+    <path d="M 229,363 L 229,327 A 27 27 0 0 1 283,327 L 283,363 Z" fill="none" stroke="#64748b" stroke-width="1.5" stroke-opacity="0.6" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 4. TOP: THE SQUARE HOLE with THE RED CIRCLE PEG! -->
+  <g id="hole-square">
+    <rect x="217" y="117" width="78" height="78" rx="10" fill="url(#holeDepth)"/>
+    <rect x="217" y="117" width="78" height="78" rx="10" fill="none" stroke="#000000" stroke-width="2.5" stroke-opacity="0.3"/>
+    <rect x="217" y="117" width="78" height="78" rx="10" fill="none" stroke="#64748b" stroke-width="1.5" stroke-opacity="0.6"/>
+  </g>
+
+  <!-- THE RED PEG IN THE SQUARE HOLE! -->
+  <g id="peg-in-square" filter="url(#pegGlow)">
+    <!-- Socket inner shadow -->
+    <circle cx="256" cy="158" r="30" fill="#000000" opacity="0.4"/>
+    <!-- Peg body -->
+    <circle cx="256" cy="156" r="30" fill="url(#pegGrad)"/>
+    <!-- Tactile highlight rim -->
+    <circle cx="256" cy="156" r="30" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.75"/>
+  </g>
+</svg>

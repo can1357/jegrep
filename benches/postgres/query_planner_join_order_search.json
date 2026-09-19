@@ -1,0 +1,9 @@
+{
+  "query": "How does the query planner search over different join orders to build join relations during planning?",
+  "keywords": ["standard_join_search", "join_search_one_level", "make_join_rel", "join_rel_level", "GEQO", "geqo_threshold", "join_search_hook"],
+  "matches": [
+    {"file": "src/backend/optimizer/path/allpaths.c", "start_line": 3912, "end_line": 4050, "symbol": "standard_join_search", "reason": "Top-level dynamic-programming driver that iterates join levels 2..N, invoking join_search_one_level at each level and tracking join_rel_level lists until the final joined relation is produced."},
+    {"file": "src/backend/optimizer/path/joinrels.c", "start_line": 64, "end_line": 262, "symbol": "join_search_one_level", "reason": "Core enumeration step of the DP algorithm: for a given level it builds all valid left-sided, right-sided, and bushy join combinations from lower-level join relations, calling make_join_rel for each candidate pairing."},
+    {"file": "src/backend/optimizer/path/joinrels.c", "start_line": 712, "end_line": 806, "symbol": "make_join_rel", "reason": "Given two candidate relations, validates the join is legal, determines join type/SpecialJoinInfo, and builds (or finds) the RelOptInfo representing that specific join order, attaching paths for it."}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "query": "How does Postgres detect a deadlock among transactions waiting on each other's locks?",
+  "keywords": ["DeadLockCheck", "FindLockCycle", "FindLockCycleRecurse", "waits-for graph", "DeadLockCheckRecurse", "possibleConstraints", "softEdges", "TopoSort"],
+  "matches": [
+    {"file": "src/backend/storage/lmgr/deadlock.c", "start_line": 203, "end_line": 280, "symbol": "DeadLockCheck", "reason": "Entry point for the deadlock detector: invoked when a backend has waited too long for a lock, it searches for deadlocks and either signals a fixable soft deadlock (wait-queue reorder) or an unresolvable hard deadlock."},
+    {"file": "src/backend/storage/lmgr/deadlock.c", "start_line": 298, "end_line": 358, "symbol": "DeadLockCheckRecurse", "reason": "Recursively explores adding soft-edge constraints to the waits-for graph to determine whether a deadlock-free ordering of lock wait queues exists."},
+    {"file": "src/backend/storage/lmgr/deadlock.c", "start_line": 426, "end_line": 773, "symbol": "FindLockCycle / FindLockCycleRecurse / FindLockCycleRecurseMember", "reason": "The core cycle-detection algorithm: walks the waits-for graph from a blocked process through hard (lock-holder) and soft (queue-order) edges, detecting a cycle back to the start process, which constitutes a deadlock."}
+  ]
+}

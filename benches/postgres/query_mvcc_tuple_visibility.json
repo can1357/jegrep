@@ -1,0 +1,9 @@
+{
+  "query": "How does Postgres decide whether a heap tuple is visible to a given snapshot under MVCC?",
+  "keywords": ["HeapTupleSatisfiesMVCC", "XidInMVCCSnapshot", "HeapTupleSatisfiesVisibility", "HEAP_XMAX_INVALID", "TransactionIdDidCommit", "HeapTupleHeaderXminCommitted", "SNAPSHOT_MVCC"],
+  "matches": [
+    {"file": "src/backend/access/heap/heapam_visibility.c", "start_line": 916, "end_line": 1096, "symbol": "HeapTupleSatisfiesMVCC", "reason": "Core algorithm that examines a tuple's xmin/xmax, hint bits, and current-transaction/command-id state to determine if it is visible under a given MVCC snapshot."},
+    {"file": "src/backend/access/heap/heapam_visibility.c", "start_line": 1721, "end_line": 1753, "symbol": "HeapTupleSatisfiesVisibility", "reason": "Public dispatcher that routes to HeapTupleSatisfiesMVCC for SNAPSHOT_MVCC, the standard entry point callers use to check tuple visibility."},
+    {"file": "src/backend/utils/time/snapmgr.c", "start_line": 1892, "end_line": 1997, "symbol": "XidInMVCCSnapshot", "reason": "Determines whether a transaction ID counts as still-in-progress relative to a snapshot's xmin/xmax/xip/subxip data, the key primitive MVCC visibility checks depend on."}
+  ]
+}

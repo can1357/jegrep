@@ -1,0 +1,17 @@
+# Keep rust-analyzer's builds (metadata, build scripts, proc macros, flychecks)
+# in target/rust-analyzer instead of the shared ./target build dir. Three RA
+# instances running `cargo check --workspace --all-targets` were serializing
+# every CLI cargo invocation behind the build-dir lock for minutes.
+[cargo]
+targetDir = true
+
+# Flycheck only the saved package, not the whole 46-crate workspace on every
+# save; workspace-wide diagnostics come from `just check` / CI.
+[check]
+workspace = false
+
+[imports]
+granularity = { enforce = true, group = "crate" }
+preferNoStd = false
+preferPrelude = true
+prefix = "crate"

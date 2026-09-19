@@ -1,0 +1,10 @@
+{
+  "query": "How does CPython intern strings so identical string literals can share the same object?",
+  "keywords": ["intern_common", "PyUnicode_InternInPlace", "PyUnicode_InternFromString", "immortalize_interned", "INTERNED_STRINGS", "get_interned_dict", "SSTATE_INTERNED_MORTAL", "PyDict_SetDefaultRef"],
+  "matches": [
+    {"file": "Objects/unicodeobject.c", "start_line": 14639, "end_line": 14818, "symbol": "intern_common", "reason": "Core interning logic: looks up the string in the global interned hashtable and per-interpreter interned dict, and if an equal string already exists returns that shared object instead of the new one."},
+    {"file": "Objects/unicodeobject.c", "start_line": 14607, "end_line": 14625, "symbol": "immortalize_interned", "reason": "Promotes a mortal interned string to immortal so it remains valid as the single shared instance for the process lifetime."},
+    {"file": "Objects/unicodeobject.c", "start_line": 14842, "end_line": 14868, "symbol": "PyUnicode_InternInPlace / PyUnicode_InternImmortal / PyUnicode_InternFromString", "reason": "Public API wrappers that the compiler and C code call to intern string literals/names, delegating to intern_common for the actual sharing logic."},
+    {"file": "Objects/unicodeobject.c", "start_line": 212, "end_line": 223, "symbol": "get_interned_dict / INTERNED_STRINGS", "reason": "Defines the per-interpreter interned dict and process-global interned hashtable that back the interning mechanism."}
+  ]
+}

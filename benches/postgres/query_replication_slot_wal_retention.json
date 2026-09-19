@@ -1,0 +1,9 @@
+{
+  "query": "How do replication slots determine which WAL segments must be retained and prevent them from being removed?",
+  "keywords": ["ReplicationSlotsComputeRequiredLSN", "XLogGetReplicationSlotMinimumLSN", "XLogSetReplicationSlotMinimumLSN", "KeepLogSeg", "replicationSlotMinLSN", "max_slot_wal_keep_size", "restart_lsn"],
+  "matches": [
+    {"file": "src/backend/replication/slot.c", "start_line": 1298, "end_line": 1361, "symbol": "ReplicationSlotsComputeRequiredLSN", "reason": "Scans all replication slots to compute the minimum restart_lsn (the oldest WAL location any slot still needs) and publishes it to the xlog subsystem."},
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 2745, "end_line": 2771, "symbol": "XLogSetReplicationSlotMinimumLSN / XLogGetReplicationSlotMinimumLSN", "reason": "Shared-memory accessors that store/retrieve the slot-required minimum LSN, bridging the slot subsystem's computation to WAL segment retention decisions."},
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 8896, "end_line": 8979, "symbol": "KeepLogSeg", "reason": "Core enforcement logic: retreats the WAL segment eligible for removal to no later than what replication slots require (plus max_slot_wal_keep_size/wal_keep_size limits), preventing needed segments from being deleted."}
+  ]
+}

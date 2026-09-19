@@ -1,0 +1,10 @@
+{
+  "query": "How does the deployment controller perform a rolling update between old and new ReplicaSets?",
+  "keywords": ["rolloutRolling", "reconcileNewReplicaSet", "reconcileOldReplicaSets", "scaleDownOldReplicaSetsForRollingUpdate", "cleanupUnhealthyReplicas", "MaxUnavailable", "NewRSNewReplicas", "maxScaledDown"],
+  "matches": [
+    {"file": "pkg/controller/deployment/rolling.go", "start_line": 31, "end_line": 66, "symbol": "rolloutRolling", "reason": "Top-level rolling-update algorithm: scales up the new RS, then scales down old RSs, then cleans up, syncing rollout status between each step."},
+    {"file": "pkg/controller/deployment/rolling.go", "start_line": 68, "end_line": 84, "symbol": "reconcileNewReplicaSet", "reason": "Determines how far the new ReplicaSet can be scaled up during the rollout based on maxSurge."},
+    {"file": "pkg/controller/deployment/rolling.go", "start_line": 86, "end_line": 152, "symbol": "reconcileOldReplicaSets", "reason": "Computes the safe scale-down budget for old ReplicaSets using maxUnavailable/availability accounting and triggers unhealthy-replica cleanup plus scale-down."},
+    {"file": "pkg/controller/deployment/rolling.go", "start_line": 193, "end_line": 235, "symbol": "scaleDownOldReplicaSetsForRollingUpdate", "reason": "Performs the actual proportional scale-down of old ReplicaSets (oldest first) while keeping availability above minAvailable, the core rolling-update mechanic."}
+  ]
+}

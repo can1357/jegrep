@@ -1,0 +1,10 @@
+{
+  "query": "How does the Horizontal Pod Autoscaler compute the desired replica count from observed metrics?",
+  "keywords": ["GetResourceReplicas", "getUsageRatioReplicaCount", "computeReplicasForMetrics", "computeReplicasForMetric", "usageRatio", "ceilToInt32", "GetResourceUtilizationRatio", "ReplicaCalculator"],
+  "matches": [
+    {"file": "pkg/controller/podautoscaler/replica_calculator.go", "start_line": 80, "end_line": 165, "symbol": "ReplicaCalculator.GetResourceReplicas", "reason": "Core algorithm: fetches resource metrics, computes usage-to-target ratio, and derives the desired replica count (with tolerance and missing/unready pod handling) for CPU/memory-based scaling."},
+    {"file": "pkg/controller/podautoscaler/replica_calculator.go", "start_line": 282, "end_line": 300, "symbol": "ReplicaCalculator.getUsageRatioReplicaCount", "reason": "Generic shared formula desiredReplicas = ceil(usageRatio * readyPodCount) used by object/external/per-pod metric replica calculations."},
+    {"file": "pkg/controller/podautoscaler/horizontal.go", "start_line": 380, "end_line": 428, "symbol": "HorizontalController.computeReplicasForMetrics", "reason": "Top-level orchestration that computes a replica proposal for every configured metric and selects the maximum as the final desired replica count."},
+    {"file": "pkg/controller/podautoscaler/horizontal.go", "start_line": 477, "end_line": 597, "symbol": "HorizontalController.computeReplicasForMetric", "reason": "Dispatches computation per metric source type (object, pods, resource, container resource, external) and returns each metric's replica proposal."}
+  ]
+}

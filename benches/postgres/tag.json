@@ -1,0 +1,6 @@
+{
+  "name": "postgres",
+  "remote": "https://github.com/postgres/postgres.git",
+  "local": "/tmp/grep-bench-target",
+  "hash": "e73841ffbceea314cf9fa3f64a5eae9f87a46449"
+}

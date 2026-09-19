@@ -1,0 +1,10 @@
+{
+  "query": "How does the buddy allocator allocate and free physical memory pages, splitting and merging blocks?",
+  "keywords": ["__free_one_page", "__rmqueue_smallest", "find_buddy_page_pfn", "set_buddy_order", "page_del_and_expand", "MAX_PAGE_ORDER", "free_area", "combined_pfn"],
+  "matches": [
+    {"file": "mm/page_alloc.c", "start_line": 940, "end_line": 1026, "symbol": "__free_one_page", "reason": "Implements freeing a page block and iteratively merging it with its buddy up through orders until no further coalescing is possible."},
+    {"file": "mm/page_alloc.c", "start_line": 1714, "end_line": 1740, "symbol": "expand", "reason": "Implements splitting a larger free block down to the requested order, pushing the leftover halves onto the free lists at each step."},
+    {"file": "mm/page_alloc.c", "start_line": 1900, "end_line": 1924, "symbol": "__rmqueue_smallest", "reason": "Finds the smallest suitable free block for an allocation and triggers its split via page_del_and_expand/expand."},
+    {"file": "mm/page_alloc.c", "start_line": 2465, "end_line": 2528, "symbol": "__rmqueue", "reason": "Top-level buddy allocator removal routine that orchestrates allocation via the smallest-fit, CMA, claim, and steal fallback strategies."}
+  ]
+}

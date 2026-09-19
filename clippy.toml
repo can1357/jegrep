@@ -1,0 +1,50 @@
+disallowed-methods = [
+	{ path = "std::sync::Mutex::new", reason = "use `parking_lot::Mutex::new` instead" },
+	{ path = "tokio::sync::mpsc::channel", reason = "use `flume::bounded` instead" },
+	{ path = "tokio::sync::mpsc::unbounded_channel", reason = "use `flume::unbounded` instead" },
+	{ path = "tokio::task::block_in_place", reason = "hijacks a runtime worker; make the boundary async or hand off to a dedicated thread" },
+	# Removed workspace deps — paths only resolve if the crate sneaks back in.
+	{ path = "base64::Engine::encode", reason = "use `omp_core::encoding::base64` instead", allow-invalid = true },
+	{ path = "base64::Engine::decode", reason = "use `omp_core::encoding::base64` instead", allow-invalid = true },
+	{ path = "glob::glob", reason = "use `omp_walker::glob::CompiledGlobSet` instead", allow-invalid = true },
+	{ path = "chrono::Utc::now", reason = "use `jiff::Timestamp::now` instead", allow-invalid = true },
+]
+# Removed workspace deps — paths only resolve if the crate sneaks back in.
+disallowed-macros = [
+	{ path = "anyhow::anyhow", reason = "use `thiserror` in libraries and `miette` at the app boundary" },
+	{ path = "anyhow::bail", reason = "use `thiserror` in libraries and `miette` at the app boundary" },
+	{ path = "anyhow::ensure", reason = "use `thiserror` in libraries and `miette` at the app boundary" },
+	{ path = "cached::proc_macro::cached", reason = "use `omp_macros::cached` instead" },
+]
+
+disallowed-types = [
+	{ path = "std::sync::Mutex", reason = "use `parking_lot::Mutex` instead" },
+	{ path = "std::sync::MutexGuard", reason = "use `parking_lot::MutexGuard` instead" },
+	{ path = "tokio::sync::mpsc::Sender", reason = "use `flume::Sender` instead" },
+	{ path = "tokio::sync::mpsc::Receiver", reason = "use `flume::Receiver` instead" },
+	{ path = "tokio::sync::mpsc::UnboundedSender", reason = "use `flume::Sender` instead" },
+	{ path = "tokio::sync::mpsc::UnboundedReceiver", reason = "use `flume::Receiver` instead" },
+	{ path = "tokio::sync::mpsc::WeakSender", reason = "use `flume::Sender` instead" },
+	{ path = "tokio::sync::mpsc::WeakUnboundedSender", reason = "use `flume::Sender` instead" },
+	{ path = "tokio::sync::mpsc::Permit", reason = "use Flume channel operations instead" },
+	{ path = "tokio::sync::mpsc::OwnedPermit", reason = "use Flume channel operations instead" },
+	{ path = "tokio::sync::mpsc::PermitIterator", reason = "use Flume channel operations instead" },
+	{ path = "tokio::sync::mpsc::error::SendError", reason = "use Flume send errors instead" },
+	{ path = "tokio::sync::mpsc::error::TrySendError", reason = "use Flume send errors instead" },
+	{ path = "tokio::sync::mpsc::error::TryRecvError", reason = "use Flume receive errors instead" },
+	{ path = "tokio::sync::mpsc::error::RecvError", reason = "use Flume receive errors instead" },
+
+	# Removed workspace deps — paths only resolve if the crate sneaks back in.
+	{ path = "anyhow::Error", reason = "use `thiserror` in libraries and `miette` at the app boundary", allow-invalid = true },
+	{ path = "base64::engine::GeneralPurpose", reason = "use `omp_core::encoding::base64` instead", allow-invalid = true },
+	{ path = "chrono::DateTime", reason = "use `jiff` instead", allow-invalid = true },
+	{ path = "chrono::NaiveDateTime", reason = "use `jiff` instead", allow-invalid = true },
+	{ path = "chrono::Utc", reason = "use `jiff` instead", allow-invalid = true },
+	{ path = "chrono::Local", reason = "use `jiff` instead", allow-invalid = true },
+	{ path = "glob::Pattern", reason = "use `omp_walker::glob::CompiledPattern` instead", allow-invalid = true },
+	{ path = "reqwest::Client", reason = "use the workspace `hyper` + `hyper-rustls` HTTP stack instead", allow-invalid = true },
+	{ path = "secrecy::SecretBox", reason = "use `omp_core::SecretBox` instead", allow-invalid = true },
+	{ path = "secrecy::SecretString", reason = "use `omp_core::SecretString` instead", allow-invalid = true },
+	{ path = "smol_str::SmolStr", reason = "use `omp_core::Str` instead", allow-invalid = true },
+	{ path = "ulid::Ulid", reason = "use `omp_core::Ulid` instead", allow-invalid = true },
+]

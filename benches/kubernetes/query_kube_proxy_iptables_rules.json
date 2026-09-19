@@ -1,0 +1,9 @@
+{
+  "query": "How does kube-proxy generate iptables rules to route traffic to a Service's backend pods?",
+  "keywords": ["syncProxyRules", "writeServiceToEndpointRules", "servicePortEndpointChainName", "KUBE-SEP-", "--to-destination", "statistic", "--probability", "clusterPolicyChain"],
+  "matches": [
+    {"file": "pkg/proxy/iptables/proxier.go", "start_line": 625, "end_line": 1428, "symbol": "Proxier.syncProxyRules", "reason": "This is the core function that regenerates all kube-proxy NAT-table iptables chains and rules (KUBE-SERVICES/KUBE-SVC/KUBE-SEP) for every Service, including dispatch to cluster/local endpoint policy chains."},
+    {"file": "pkg/proxy/iptables/proxier.go", "start_line": 1215, "end_line": 1243, "symbol": "syncProxyRules (per-endpoint chain generation)", "reason": "For each reachable endpoint this loop creates a KUBE-SEP-* chain and appends the DNAT rule ('-j DNAT --to-destination <podIP:port>') that actually routes matched packets to the backend pod."},
+    {"file": "pkg/proxy/iptables/proxier.go", "start_line": 1430, "end_line": 1474, "symbol": "Proxier.writeServiceToEndpointRules", "reason": "Writes the session-affinity and probabilistic load-balancing rules (iptables statistic module with decreasing --probability) that select which backend endpoint chain a Service's traffic jumps to."}
+  ]
+}

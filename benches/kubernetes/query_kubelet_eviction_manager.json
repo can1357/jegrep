@@ -1,0 +1,10 @@
+{
+  "query": "How does the kubelet decide to evict pods when the node is under memory or disk pressure?",
+  "keywords": ["synchronize", "thresholdsMet", "thresholdsMetGracePeriod", "rankMemoryPressure", "rankDiskPressureFunc", "buildSignalToRankFunc", "evictPod", "reclaimNodeLevelResources"],
+  "matches": [
+    {"file": "pkg/kubelet/eviction/eviction_manager.go", "start_line": 256, "end_line": 454, "symbol": "managerImpl.synchronize", "reason": "Core periodic decision loop: computes signal observations, determines which eviction thresholds are met (and past grace period), tries node-level reclaim first, ranks active pods, and evicts the top-ranked pod when memory/disk pressure thresholds are violated."},
+    {"file": "pkg/kubelet/eviction/helpers.go", "start_line": 943, "end_line": 969, "symbol": "thresholdsMet", "reason": "Determines whether observed resource availability (memory/disk/etc.) violates configured hard/soft eviction thresholds, the core pressure-detection logic."},
+    {"file": "pkg/kubelet/eviction/helpers.go", "start_line": 819, "end_line": 833, "symbol": "rankMemoryPressure / rankDiskPressureFunc", "reason": "Defines how candidate pods are ordered for eviction under memory pressure vs. disk pressure (by usage exceeding requests, priority, then absolute usage)."},
+    {"file": "pkg/kubelet/eviction/helpers.go", "start_line": 1151, "end_line": 1194, "symbol": "buildSignalToRankFunc", "reason": "Maps each eviction signal (memory available, node/image/container fs available or inodes free) to its pod-ranking function, wiring memory vs. disk pressure to distinct eviction ordering strategies."}
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "query": "How does CPython's import system find and load a module from the filesystem?",
+  "keywords": ["_find_and_load", "_find_and_load_unlocked", "_find_spec", "PathFinder", "FileFinder", "find_spec", "_fill_cache", "_path_importer_cache"],
+  "matches": [
+    {"file": "Lib/importlib/_bootstrap.py", "start_line": 1257, "end_line": 1321, "symbol": "_find_and_load_unlocked", "reason": "Resolves the parent package, calls _find_spec to locate the module, then loads it via _load_unlocked — the core find-then-load sequence."},
+    {"file": "Lib/importlib/_bootstrap.py", "start_line": 1327, "end_line": 1365, "symbol": "_find_and_load", "reason": "Top-level entry point (used by __import__) that adds locking/reentrancy handling around the find-and-load logic for a module name."},
+    {"file": "Lib/importlib/_bootstrap_external.py", "start_line": 1241, "end_line": 1291, "symbol": "PathFinder._get_spec / find_spec", "reason": "Iterates sys.path entries, obtains a per-directory finder via path hooks/cache, and returns the module spec — the meta path finder responsible for filesystem-based lookup."},
+    {"file": "Lib/importlib/_bootstrap_external.py", "start_line": 1359, "end_line": 1408, "symbol": "FileFinder.find_spec", "reason": "Directly inspects a directory's cached listing, checks for package __init__ files and suffix matches to locate a module file on disk and build its spec."}
+  ]
+}

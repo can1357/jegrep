@@ -1,0 +1,10 @@
+{
+  "query": "How does the garbage collector controller delete dependent objects when their owner is deleted?",
+  "keywords": ["attemptToDeleteItem", "classifyReferences", "isDangling", "processDeletingDependentsItem", "deleteObject", "DeletePropagationForeground", "waitingForDependentsDeletion", "FinalizerDeleteDependents"],
+  "matches": [
+    {"file": "pkg/controller/garbagecollector/garbagecollector.go", "start_line": 500, "end_line": 658, "symbol": "attemptToDeleteItem", "reason": "Core logic that classifies an item's owner references (solid/dangling/waitingForDependentsDeletion) and issues the actual delete with the appropriate propagation policy when all owners are gone or dangling."},
+    {"file": "pkg/controller/garbagecollector/garbagecollector.go", "start_line": 661, "end_line": 677, "symbol": "processDeletingDependentsItem", "reason": "Handles an owner in foreground-deletion state by re-queuing blocking dependents for deletion or removing the delete-dependents finalizer once they're gone."},
+    {"file": "pkg/controller/garbagecollector/garbagecollector.go", "start_line": 380, "end_line": 453, "symbol": "isDangling", "reason": "Determines whether a dependent's owner reference no longer exists, which is the trigger condition for garbage collecting the dependent."},
+    {"file": "pkg/controller/garbagecollector/operations.go", "start_line": 53, "end_line": 80, "symbol": "deleteObject", "reason": "Performs the actual API delete call with UID/resourceVersion preconditions and propagation policy that removes the dependent object from the cluster."}
+  ]
+}

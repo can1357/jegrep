@@ -1,0 +1,8 @@
+{
+  "query": "How does CPython's tokenizer turn Python source text into a stream of tokens?",
+  "keywords": ["_PyTokenizer_Get", "_PyLexer_get_normal", "MAKE_TOKEN", "tok_state", "ftstring_state", "tok_nextc", "_PyLexer_refill"],
+  "matches": [
+    {"file": "Parser/lexer/lexer.c", "start_line": 146, "end_line": 658, "symbol": "_PyLexer_get_normal", "reason": "Core lexer state machine: consumes raw characters from the source buffer and classifies them into indentation, number, string, name, and operator tokens."},
+    {"file": "Parser/lexer/lexer.c", "start_line": 661, "end_line": 687, "symbol": "_PyTokenizer_Get", "reason": "Public entry point that repeatedly produces the next token (dispatching to normal or f-string lexing modes), forming the token stream consumed by the parser."}
+  ]
+}

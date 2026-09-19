@@ -1,0 +1,10 @@
+{
+  "query": "How does the futex syscall implement fast userspace mutex waiting and waking?",
+  "keywords": ["futex_wake", "futex_wait", "futex_wait_setup", "futex_do_wait", "plist_for_each_entry_safe", "futex_hash_bucket", "wake_q_add_safe", "hb->lock"],
+  "matches": [
+    {"file": "kernel/futex/waitwake.c", "start_line": 178, "end_line": 227, "symbol": "futex_wake", "reason": "Core wake-side implementation: hashes the userspace address, walks the hash-bucket waiter list, and wakes matching waiters via wake_q."},
+    {"file": "kernel/futex/waitwake.c", "start_line": 604, "end_line": 699, "symbol": "futex_wait_setup", "reason": "Implements the atomic 'check value then enqueue on hash bucket under lock' step that makes futex wait/wake race-free without a kernel-persistent lock object."},
+    {"file": "kernel/futex/waitwake.c", "start_line": 365, "end_line": 390, "symbol": "futex_do_wait", "reason": "Actually blocks the task (schedule()) until woken, timed out, or the plist entry is removed, i.e. the sleep side of futex waiting."},
+    {"file": "kernel/futex/waitwake.c", "start_line": 701, "end_line": 771, "symbol": "__futex_wait / futex_wait", "reason": "Top-level FUTEX_WAIT logic: sets up the wait, sleeps, handles timeout/signal/retry, forming the syscall's user-facing wait path."}
+  ]
+}

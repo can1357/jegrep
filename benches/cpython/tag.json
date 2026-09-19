@@ -1,0 +1,6 @@
+{
+  "name": "cpython",
+  "remote": "https://github.com/python/cpython.git",
+  "local": "/tmp/grep-bench-target-cpython",
+  "hash": "aa5407091f60a68187f3b82a4d954b03904af4d4"
+}

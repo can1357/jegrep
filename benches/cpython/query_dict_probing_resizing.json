@@ -1,0 +1,9 @@
+{
+  "query": "How does CPython's dict implementation probe for a free slot and resize its hash table when it grows?",
+  "keywords": ["find_empty_slot", "dictresize", "insertion_resize", "PERTURB_SHIFT", "GROWTH_RATE", "dk_usable", "calculate_log2_keysize", "dictkeys_get_index"],
+  "matches": [
+    {"file": "Objects/dictobject.c", "start_line": 1873, "end_line": 1890, "symbol": "find_empty_slot", "reason": "Implements the open-addressing perturbation probe sequence (hash & mask, then perturb-based rehashing) used to locate a free slot for a new key."},
+    {"file": "Objects/dictobject.c", "start_line": 1892, "end_line": 1896, "symbol": "insertion_resize", "reason": "Wrapper that triggers a table resize (growth) when insertion runs out of usable slots, computing the new size via GROWTH_RATE."},
+    {"file": "Objects/dictobject.c", "start_line": 2191, "end_line": 2341, "symbol": "dictresize", "reason": "Core resize routine: allocates a new larger keys table and rehashes/reinserts all existing entries into it, implementing dict growth."}
+  ]
+}

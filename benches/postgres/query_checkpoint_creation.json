@@ -1,0 +1,10 @@
+{
+  "query": "What is the logic for creating a checkpoint, flushing dirty buffers, and recording the checkpoint WAL record?",
+  "keywords": ["CreateCheckPoint", "CheckPointGuts", "CheckPointBuffers", "BufferSync", "XLOG_CHECKPOINT_REDO", "XLOG_CHECKPOINT_ONLINE", "BM_CHECKPOINT_NEEDED"],
+  "matches": [
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 7640, "end_line": 8233, "symbol": "CreateCheckPoint", "reason": "Core function that builds the CheckPoint struct, inserts the XLOG_CHECKPOINT_REDO record to mark the redo point, invokes CheckPointGuts to flush all dirty data, and finally inserts the XLOG_CHECKPOINT_ONLINE/SHUTDOWN WAL record completing the checkpoint."},
+    {"file": "src/backend/access/transam/xlog.c", "start_line": 8380, "end_line": 8421, "symbol": "CheckPointGuts", "reason": "Shared helper invoked by CreateCheckPoint that drives flushing of all shared-memory state to disk, including calling CheckPointBuffers for the main buffer pool and issuing fsyncs."},
+    {"file": "src/backend/storage/buffer/bufmgr.c", "start_line": 3564, "end_line": 3840, "symbol": "BufferSync", "reason": "Implements the actual algorithm that scans shared buffers and writes out every buffer marked BM_CHECKPOINT_NEEDED, i.e. the 'flushing dirty buffers' step of checkpointing, balanced across tablespaces."},
+    {"file": "src/backend/storage/buffer/bufmgr.c", "start_line": 4446, "end_line": 4458, "symbol": "CheckPointBuffers", "reason": "Thin, explicitly-named entry point called from CheckPointGuts that triggers BufferSync to flush all dirty buffers at checkpoint time."}
+  ]
+}

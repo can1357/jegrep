@@ -1,0 +1,9 @@
+{
+  "query": "How does CPython's Global Interpreter Lock get acquired, released, and switched between threads?",
+  "keywords": ["take_gil", "drop_gil", "gil->switch_number", "GIL_DROP_REQUEST", "_gil_runtime_state", "PyEval_AcquireLock", "PyEval_ReleaseLock", "switch_cond"],
+  "matches": [
+    {"file": "Python/ceval_gil.c", "start_line": 285, "end_line": 422, "symbol": "take_gil", "reason": "Core acquisition loop: waits on gil->cond with a timed interval, requests the current holder to drop via GIL_DROP_REQUEST_BIT, then atomically takes ownership and updates switch_number/last_holder."},
+    {"file": "Python/ceval_gil.c", "start_line": 202, "end_line": 276, "symbol": "drop_gil_impl / drop_gil", "reason": "Releases the lock (clears gil->locked, signals gil->cond) and, under FORCE_SWITCHING, waits on switch_cond to hand off to the requesting thread, implementing the actual thread switch."},
+    {"file": "Python/ceval_gil.c", "start_line": 568, "end_line": 586, "symbol": "PyEval_AcquireLock / PyEval_ReleaseLock", "reason": "Public stable-ABI entry points that directly call take_gil()/drop_gil(), the top-level API for acquiring/releasing the GIL."}
+  ]
+}

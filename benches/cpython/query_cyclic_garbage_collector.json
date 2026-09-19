@@ -1,0 +1,10 @@
+{
+  "query": "How does CPython's cyclic garbage collector find and collect reference cycles?",
+  "keywords": ["gc_collect_main", "deduce_unreachable", "move_unreachable", "subtract_refs", "update_refs", "visit_reachable", "visit_decref", "PyGC_Head"],
+  "matches": [
+    {"file": "Python/gc.c", "start_line": 1420, "end_line": 1650, "symbol": "gc_collect_main", "reason": "The main GC driver: merges generations, calls deduce_unreachable to find cycles, handles finalizers/weakrefs, and deletes garbage."},
+    {"file": "Python/gc.c", "start_line": 1168, "end_line": 1219, "symbol": "deduce_unreachable", "reason": "Core cycle-detection routine: computes internal refcounts via update_refs/subtract_refs and moves unreachable (cyclic garbage) objects to a separate list."},
+    {"file": "Python/gc.c", "start_line": 578, "end_line": 650, "symbol": "move_unreachable", "reason": "Implements the mark-and-sweep-like traversal that separates truly unreachable (cyclic garbage) objects from those reachable from outside the generation."},
+    {"file": "Python/gc.c", "start_line": 396, "end_line": 501, "symbol": "update_refs / subtract_refs", "reason": "Sets up gc_refs from real refcounts and subtracts internal references via tp_traverse, the basis of cycle detection."}
+  ]
+}
