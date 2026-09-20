@@ -186,13 +186,19 @@ JEGREP_ENDPOINT_URL=http://127.0.0.1:8010/v1/systemone jegrep "…" --endpoint l
 ```
 
 Labelled set: 8 questions over this repository, each judged against its true file
-plus three distractors.
+plus three distractors. Top-1 counts cases where the labelled file scored
+strictly above every distractor — no ties resolved by candidate order.
 
-| judge | top-1 | MRR | per judgment |
+| judge | top-1 | MRR | P50 per judgment, 400 / 4000 chars of state |
 | --- | ---: | ---: | ---: |
-| Laya 421M on Core ML (not used here) | 5/8 | 0.781 | ~30 ms |
-| kev-0.6b | 7/8 | 0.938 | ~0.45 s |
-| kev-4b | 8/8 | 1.000 | ~1 s |
+| Laya 421M on Core ML (not used here) | 5/8 | 0.781 | 21 ms / 950 ms |
+| kev-0.6b | 7/8 | 0.938 | 62 ms / 311 ms |
+| kev-4b | 8/8 | 1.000 | 170 ms / 1190 ms |
+
+Per-judgment cost tracks the state a judge must read, so the cheap shape is
+lexical first, semantic second: the grep index (ripgrep crates) narrows the tree
+in milliseconds, and the judge only sees short passages. jestrep's `--bytes`,
+`-n` and `--max-batch` control how much state that is.
 
 ### Ignoring Files
 
