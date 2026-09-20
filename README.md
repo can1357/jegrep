@@ -156,9 +156,18 @@ There is no config file. Everything is CLI flags plus environment variables.
 
 ### Ignoring Files
 
-jegrep respects `.gitignore` (nested files honored) and skips lockfiles, build
-outputs (`node_modules`, `target`, `dist`, …), and binary extensions. Dot-files
-are excluded unless `--hidden` is passed.
+jegrep respects `.gitignore` (nested files honored, also in directory peeks)
+and skips lockfiles, build outputs (`node_modules`, `target`, `dist`, …), and
+binary extensions. Dot-files are excluded unless `--hidden` is passed.
+
+Credential files are never listed or read, with or without `--hidden`: `.env`
+and `.env.*` (except `.env.example`-style templates), `.netrc`, `.npmrc`,
+`.pypirc`, `.git-credentials`, `credentials.json`, `id_rsa`-style SSH keys, and
+anything ending in `.pem`, `.key`, `.p12`, `.pfx`, `.jks`, `.ppk`, `.kdbx`,
+`.gpg`, `.crt`, `.tfvars` or `.tfstate` (full list: `SECRET_FILES` /
+`SECRET_EXT` in `src/tree.rs`). The deny lists are a safety net for build
+noise and obvious key material, not a secret scanner — a token pasted into
+`config.yaml` is still ordinary text.
 
 ## Troubleshooting
 
