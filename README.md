@@ -154,11 +154,57 @@ There is no config file. Everything is CLI flags plus environment variables.
 | Variable | Description | Default |
 | --- | --- | --- |
 | `OPENROUTER_API_KEY` / `TYPESAFE_API_KEY` | Provider keys (env or `~/.env`) | unset |
+| `JEGREP_ENDPOINT_URL` | URL used by `--endpoint local` (any Jev-shaped server) | `http://127.0.0.1:8756/` |
 | `JEGREP_CASCADE_CANDIDATES` / `FILES` / `WINDOWS` / `BYTES` | Cascade candidate/file/passage/byte budgets | `128` / `20` / `24` / `8192` |
 | `JEGREP_CASCADE_SKETCH_BYTES` / `FULL_LIMIT` / `CUTOFF` | Sketch size, full-passage cap, sketch cutoff | `384` / `40` / `0.45` |
 | `JEGREP_WINDOW_CANDIDATES` / `FILES` / `PER_FILE` / `BYTES` / `PACK` | Window strategy budgets | — |
 | `JEGREP_WINDOW_SCOUT_THRESHOLD` / `JEGREP_WINDOW_ADAPTIVE` / `JEGREP_WINDOW_COMPACT` | Window prefilter tuning | `0.5` / on / on |
 | `JEGREP_QUESTION_CHUNK` | Split Noul batches (opt-in request splitting) | off |
+
+### Local endpoints
+
+`--endpoint local` talks to any HTTP server that speaks the same request shape as
+the hosted providers, on `JEGREP_ENDPOINT_URL` (default `http://127.0.0.1:8756/`).
+No API key is required, and no failover provider is added: a local server either
+answers or the run fails with its error. That is the whole contract — anything
+that accepts this and returns the matching answers works:
+
+```jsonc
+// POST /
+{ "state": <any JSON>, "model": "jev-latest",
+  "questions": { "q0": { "type": "noul", "instructions": "…", "criteria": null } } }
+// -> 200
+{ "model": "my-local-judge", "answers": { "q0": { "type": "noul", "noul": 0.87 } },
+  "usage": { "input_tokens": 0, "output_tokens": 0 } }
+```
+
+Answers use the same `noul` / `choice` / `score` shapes as the hosted API, and
+`usage` may be all zeros when the judge does not bill per token (jegrep prints
+`$0.0000`). Fit the server's context window yourself: jegrep packs one state per
+batch of questions, and `--bytes`, `-n/--batch` and `--max-batch` bound how much
+content each request carries.
+
+kev speaks the same contract, so it needs no adapter:
+
+```bash
+uv run --extra serve python -m kev.serve --run jaredpalmer/kev-4b --port 8010
+JEGREP_ENDPOINT_URL=http://127.0.0.1:8010/v1/systemone jegrep "…" --endpoint local
+```
+
+Labelled set: 8 questions over this repository, each judged against its true file
+plus three distractors. Top-1 counts cases where the labelled file scored
+strictly above every distractor — no ties resolved by candidate order.
+
+| judge | top-1 | MRR | P50 per judgment, 400 / 4000 chars of state |
+| --- | ---: | ---: | ---: |
+| Laya 421M on Core ML (not used here) | 5/8 | 0.781 | 21 ms / 950 ms |
+| kev-0.6b | 7/8 | 0.938 | 62 ms / 311 ms |
+| kev-4b | 8/8 | 1.000 | 170 ms / 1190 ms |
+
+Per-judgment cost tracks the state a judge must read, so the cheap shape is
+lexical first, semantic second: the grep index (ripgrep crates) narrows the tree
+in milliseconds, and the judge only sees short passages. jestrep's `--bytes`,
+`-n` and `--max-batch` control how much state that is.
 
 ### Ignoring Files
 

@@ -14,6 +14,9 @@ use serde_json::Value;
 pub enum Endpoint {
 	Openrouter,
 	Typesafe,
+	/// Any Jev-compatible server on localhost (e.g. a Core ML model behind a
+	/// shim). Needs no API key; override the URL with `JEGREP_ENDPOINT_URL`.
+	Local,
 }
 
 impl Endpoint {
@@ -21,6 +24,7 @@ impl Endpoint {
 		match self {
 			Self::Openrouter => "OPENROUTER_API_KEY",
 			Self::Typesafe => "TYPESAFE_API_KEY",
+			Self::Local => "",
 		}
 	}
 
@@ -28,6 +32,17 @@ impl Endpoint {
 		match self {
 			Self::Openrouter => "https://openrouter.ai/api/alpha/decisions",
 			Self::Typesafe => "https://api.typesafe.ai/v1/systemone",
+			Self::Local => "http://127.0.0.1:8756/",
+		}
+	}
+
+	/// Resolved URL for this endpoint; only `Local` reads the environment.
+	fn resolve_url(self) -> String {
+		match self {
+			Self::Local => {
+				std::env::var("JEGREP_ENDPOINT_URL").unwrap_or_else(|_| Self::Local.url().to_owned())
+			},
+			_ => self.url().to_owned(),
 		}
 	}
 }
@@ -42,16 +57,21 @@ fn providers(
 	preferred: Option<Endpoint>,
 	mut lookup: impl FnMut(&str) -> Result<String, String>,
 ) -> Result<Vec<Provider>, String> {
+	if preferred == Some(Endpoint::Local) {
+		// A local backend authenticates nothing; single provider, no failover.
+		return Ok(vec![Provider { url: Endpoint::Local.resolve_url(), auth: String::new() }]);
+	}
 	let first = preferred.unwrap_or(Endpoint::Openrouter);
 	let second = match first {
 		Endpoint::Openrouter => Endpoint::Typesafe,
 		Endpoint::Typesafe => Endpoint::Openrouter,
+		Endpoint::Local => unreachable!("handled above"),
 	};
 	let mut providers = Vec::new();
 	for endpoint in [first, second] {
 		match lookup(endpoint.key_name()) {
 			Ok(key) => {
-				providers.push(Provider { url: endpoint.url().into(), auth: format!("Bearer {key}") })
+				providers.push(Provider { url: endpoint.resolve_url(), auth: format!("Bearer {key}") })
 			},
 			Err(e) if preferred == Some(endpoint) => return Err(e),
 			Err(_) => {},
@@ -315,12 +335,14 @@ impl Client {
 		let mut attempt = 0u32;
 		loop {
 			HTTP_ATTEMPTS.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-			let sent = self
+			let mut request = self
 				.agent
 				.post(&provider.url)
-				.header("Authorization", &provider.auth)
-				.header("Content-Type", "application/json")
-				.send_json(&body);
+				.header("Content-Type", "application/json");
+			if !provider.auth.is_empty() {
+				request = request.header("Authorization", &provider.auth);
+			}
+			let sent = request.send_json(&body);
 			match sent {
 				Ok(mut resp) => {
 					let status = resp.status().as_u16();
@@ -421,6 +443,42 @@ mod tests {
 		assert_eq!(providers(None, only_typesafe).unwrap()[0].url, Endpoint::Typesafe.url());
 		assert!(providers(Some(Endpoint::Openrouter), only_typesafe).is_err());
 		assert!(providers(None, |_| Err("missing".into())).is_err());
+	}
+
+	#[test]
+	fn local_endpoint_needs_no_key() {
+		// A self-hosted judge has no API keys; selection must not require any.
+		let no_keys = |_: &str| Err::<String, _>("no keys configured".into());
+		let picked = providers(Some(Endpoint::Local), no_keys).unwrap();
+		assert_eq!(picked.len(), 1, "local endpoint must not add a failover provider");
+		assert!(picked[0].auth.is_empty());
+		assert_eq!(picked[0].url, Endpoint::Local.url());
+	}
+
+	#[test]
+	fn local_endpoint_sends_no_authorization_header() {
+		let (url, server, _peak) = question_server(1, |_| 200);
+		let client = Client {
+			agent:          ureq::Agent::config_builder()
+				.http_status_as_error(false)
+				.timeout_global(Some(Duration::from_secs(5)))
+				.build()
+				.new_agent(),
+			providers:      vec![Provider { url, auth: String::new() }],
+			active:         std::sync::atomic::AtomicUsize::new(0),
+			model:          "jev-latest".into(),
+			max_retries:    0,
+			question_chunk: None,
+		};
+		let response = client.system_one(&Value::Null, &noul_questions(2)).unwrap();
+		assert_eq!(response.answers.len(), 2);
+		let requests = server.join().unwrap();
+		assert_eq!(requests.len(), 1);
+		let raw = requests[0].to_string().to_lowercase();
+		assert!(
+			!raw.contains("authorization"),
+			"local endpoint must not send an Authorization header: {raw}"
+		);
 	}
 
 	fn server(status: u16, count: usize, key: &'static str) -> (String, thread::JoinHandle<()>) {
