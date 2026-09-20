@@ -16,6 +16,13 @@ pub mod window;
 
 pub trait Strategy {
 	fn run(&mut self, ctx: &mut Ctx);
+
+	/// Whether `--bytes`, `--ranges` and `--min-hits` steer this strategy:
+	/// whole-file content checks over a `--thresholds` ladder. Passage
+	/// strategies (`cascade`, `window`) budget by passage and ignore them.
+	fn file_knobs(&self) -> bool {
+		true
+	}
 }
 
 pub const NAMES: &[&str] = &[

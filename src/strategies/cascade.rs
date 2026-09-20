@@ -120,9 +120,13 @@ fn dispatch(
 }
 
 impl Strategy for Cascade {
+	fn file_knobs(&self) -> bool {
+		false
+	}
+
 	fn run(&mut self, ctx: &mut Ctx) {
 		let prepare_started = std::time::Instant::now();
-		let keywords = grep::keywords_from_query(&ctx.opts.query);
+		let keywords = grep::keywords(&ctx.opts.query, &ctx.opts.keywords);
 		ctx.ui.phase("lexical scan");
 		let observer = ctx.ui.scan_observer();
 		let index = match grep::grep_index_observed(

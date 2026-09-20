@@ -19,7 +19,7 @@ use std::collections::{HashMap, VecDeque};
 use super::Strategy;
 use crate::{
 	ctx::Ctx,
-	grep::{GrepIndex, grep_index, keywords_from_query},
+	grep::{self, GrepIndex, grep_index},
 	pool::{Job, Outcome},
 	questions::{self, FileErr, heat_from},
 	tree::{Kind, State},
@@ -87,13 +87,7 @@ impl Paged {
 impl Strategy for Paged {
 	fn run(&mut self, ctx: &mut Ctx) {
 		if self.grep {
-			let mut kws = keywords_from_query(&ctx.opts.query);
-			for k in &ctx.opts.keywords {
-				let k = k.trim().to_lowercase();
-				if !k.is_empty() && !kws.contains(&k) {
-					kws.push(k);
-				}
-			}
+			let kws = grep::keywords(&ctx.opts.query, &ctx.opts.keywords);
 			match grep_index(&ctx.tree.root, &kws, ctx.tree.include_hidden) {
 				Ok(ix) => {
 					ctx.ui.note(&ctx.ui.dim(&format!(

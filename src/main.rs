@@ -60,15 +60,19 @@ struct Cli {
 	/// exhausted; the next round reopens cached judgments at the lower bar.
 	#[arg(short = 't', long, default_value = "0.4,0.2", value_delimiter = ',')]
 	thresholds:      Vec<f64>,
-	/// Bytes of each candidate file to send for the content check.
-	#[arg(long, default_value_t = 32 * 1024)]
-	bytes:           usize,
-	/// Number of line ranges in the per-file heatmap.
-	#[arg(long, default_value_t = 16)]
-	ranges:          usize,
-	/// Stop lowering the threshold once this many hits are found.
-	#[arg(long, default_value_t = 1)]
-	min_hits:        usize,
+	/// Bytes of each candidate file to send for the content check (default
+	/// 32768). Whole-file strategies only; `cascade` and `window` budget by
+	/// passage (see `JEGREP_CASCADE_BYTES` / `JEGREP_WINDOW_BYTES`).
+	#[arg(long, value_name = "N")]
+	bytes:           Option<usize>,
+	/// Number of line ranges in the per-file heatmap (default 16). Whole-file
+	/// strategies only.
+	#[arg(long, value_name = "N")]
+	ranges:          Option<usize>,
+	/// Stop lowering the threshold once this many hits are found (default 1).
+	/// Whole-file strategies only; `cascade` and `window` run a single pass.
+	#[arg(long, value_name = "N")]
+	min_hits:        Option<usize>,
 	/// Preferred API provider (default: `OpenRouter` when its key exists). Fails
 	/// over if both keys exist.
 	#[arg(long, value_enum)]
@@ -76,8 +80,8 @@ struct Cli {
 	/// Jev model id or alias.
 	#[arg(long, default_value = "jev-latest")]
 	model:           String,
-	/// Extra grep keywords for grep-prior strategies (comma-separated; default:
-	/// derived from the query).
+	/// Extra keywords for the lexical scan of `cascade`, `window` and
+	/// `paged-grep*` (comma-separated; added to those derived from the query).
 	#[arg(short = 'k', long, value_delimiter = ',')]
 	keywords:        Vec<String>,
 	/// Include hidden (dot) files and folders.
@@ -155,13 +159,30 @@ fn main() {
 		bench::summarize(&rows);
 		return;
 	}
-	if strategies::make(&cli.strategy).is_none() {
+	let Some(mut strat) = strategies::make(&cli.strategy) else {
 		ui.fatal(&format!(
 			"unknown strategy '{}'; available: {}",
 			cli.strategy,
 			strategies::NAMES.join(", ")
 		));
 		std::process::exit(2);
+	};
+	if !strat.file_knobs() {
+		let ignored: Vec<&str> = [
+			("--bytes", cli.bytes.is_some()),
+			("--ranges", cli.ranges.is_some()),
+			("--min-hits", cli.min_hits.is_some()),
+		]
+		.into_iter()
+		.filter_map(|(flag, set)| set.then_some(flag))
+		.collect();
+		if !ignored.is_empty() {
+			ui.warn(&format!(
+				"{} ignored: strategy '{}' budgets by passage (see --help)",
+				ignored.join(", "),
+				cli.strategy
+			));
+		}
 	}
 	if cli.thresholds.is_empty() || cli.thresholds.iter().any(|t| !(0.0..=1.0).contains(t)) {
 		ui.fatal("thresholds must be probabilities in 0..=1");
@@ -182,9 +203,9 @@ fn main() {
 		batch: cli.batch.clamp(1, max_batch),
 		max_batch,
 		thresholds: cli.thresholds.clone(),
-		bytes: cli.bytes.max(256),
-		ranges: cli.ranges.clamp(1, 255),
-		min_hits: cli.min_hits.max(1),
+		bytes: cli.bytes.unwrap_or(32 * 1024).max(256),
+		ranges: cli.ranges.unwrap_or(16).clamp(1, 255),
+		min_hits: cli.min_hits.unwrap_or(1).max(1),
 		keywords: cli.keywords.clone(),
 	};
 
@@ -248,7 +269,6 @@ fn main() {
 		ctx.opts.max_batch,
 	);
 	ctx.ui.workspace(&ctx.tree);
-	let mut strat = strategies::make(&cli.strategy).unwrap();
 	strat.run(&mut ctx);
 	report::print(&ctx, cli.json, cli.tree);
 }

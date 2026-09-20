@@ -323,10 +323,14 @@ fn combine_heat(new: Vec<HeatRange>, prior: &[HeatRange], threshold: f64) -> Vec
 }
 
 impl Strategy for Window {
+	fn file_knobs(&self) -> bool {
+		false
+	}
+
 	fn run(&mut self, ctx: &mut Ctx) {
 		let compact = enabled("COMPACT", true);
 		let adaptive = enabled("ADAPTIVE", true);
-		let keywords = grep::keywords_from_query(&ctx.opts.query);
+		let keywords = grep::keywords(&ctx.opts.query, &ctx.opts.keywords);
 		ctx.ui.phase("lexical scan");
 		let observer = ctx.ui.scan_observer();
 		let index = match grep::grep_index_observed(

@@ -459,6 +459,13 @@ impl Ui {
 		diagnostic(&format!("  {} {}", self.red("!"), what));
 	}
 
+	/// Non-fatal misuse (e.g. a flag the chosen strategy ignores). Shown even
+	/// with `--quiet`.
+	pub fn warn(&self, what: &str) {
+		self.reset_dir();
+		diagnostic(&format!("  {} {}", self.yellow("!"), what));
+	}
+
 	pub fn fatal(&self, what: &str) {
 		self.finish();
 		diagnostic(&format!("{} {}", self.red("error:"), what));

@@ -92,10 +92,10 @@ jegrep "how is the database connection pooled?"
 | `-n`, `--batch <n>` | Soft frontier target per batch | `64` |
 | `--max-batch <n>` | Hard cap of entries per request (≤ 255) | `128` |
 | `-t`, `--thresholds <list>` | Relevance thresholds, one per round | `0.4,0.2` |
-| `--bytes <n>` | Bytes of each file sent for the content check | `32768` |
-| `--ranges <n>` | Heatmap line ranges per file | `16` |
-| `--min-hits <n>` | Stop lowering thresholds once this many hits exist | `1` |
-| `-k`, `--keywords <list>` | Extra grep keywords for grep-prior strategies | derived |
+| `--bytes <n>` | Bytes of each file sent for the content check (whole-file strategies¹) | `32768` |
+| `--ranges <n>` | Heatmap line ranges per file (whole-file strategies¹) | `16` |
+| `--min-hits <n>` | Stop lowering thresholds once this many hits exist (whole-file strategies¹) | `1` |
+| `-k`, `--keywords <list>` | Extra keywords for the lexical scan (`cascade`, `window`, `paged-grep*`) | derived |
 | `--endpoint <provider>` | `openrouter` \| `typesafe` (automatic by default) | auto |
 | `--model <id>` | Jev model id or alias | `jev-latest` |
 | `--hidden` | Include dot-files and dot-folders | `false` |
@@ -104,6 +104,12 @@ jegrep "how is the database connection pooled?"
 | `--progress <mode>` | `live` \| `log` (terminal-aware fallback) | `live` |
 | `-v`, `--verbose` | Log every judgment | `false` |
 | `-q`, `--quiet` | Suppress progress on stderr | `false` |
+
+¹ `cascade` (the default) and `window` budget by passage, not by whole-file
+read, and run a single pass: they ignore `--bytes`, `--ranges` and
+`--min-hits` (a warning says so) and use only the last `-t` threshold. Their
+per-passage budgets are the `JEGREP_CASCADE_*` / `JEGREP_WINDOW_*` variables
+below.
 
 **Examples:**
 

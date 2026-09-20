@@ -203,6 +203,19 @@ fn stem(t: &str) -> String {
 	t.to_string()
 }
 
+/// Keywords for the grep prior: [`keywords_from_query`] plus the user's
+/// `-k/--keywords`, lowercased and deduplicated.
+pub fn keywords(query: &str, extra: &[String]) -> Vec<String> {
+	let mut kws = keywords_from_query(query);
+	for k in extra {
+		let k = k.trim().to_lowercase();
+		if !k.is_empty() && !kws.contains(&k) {
+			kws.push(k);
+		}
+	}
+	kws
+}
+
 /// Keywords for the grep prior: quoted phrases whole, then tokens minus
 /// stopwords.
 pub fn keywords_from_query(q: &str) -> Vec<String> {
