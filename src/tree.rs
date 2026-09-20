@@ -341,9 +341,13 @@ impl Tree {
 	}
 
 	/// List a directory and add its eligible entries as `Unk` children.
-	/// Returns the new child indices. Marks the node `Exp` (or `Skip` when
-	/// empty).
+	/// Returns the child indices. Marks the node `Exp` (or `Skip` when empty).
+	/// An already-expanded node returns its existing children rather than
+	/// listing them again.
 	pub fn expand(&mut self, idx: usize) -> Vec<usize> {
+		if self.nodes[idx].state == State::Exp {
+			return self.nodes[idx].children.clone();
+		}
 		let dir = self.nodes[idx].path.clone();
 		let depth = self.nodes[idx].depth + 1;
 		let parent_rel = self.nodes[idx].rel.clone();
@@ -620,6 +624,17 @@ mod tests {
 			expected.sort();
 			assert_eq!(rels, expected, "hidden={hidden}");
 		}
+	}
+
+	#[test]
+	fn expanding_twice_does_not_duplicate_children() {
+		let root = TempRoot::new();
+		root.write("a.rs", "x\n");
+		root.write("sub/b.rs", "x\n");
+		let mut tree = Tree::new(&root.0, false).unwrap();
+		let first = tree.nodes[0].children.clone();
+		assert_eq!(tree.expand(0), first);
+		assert_eq!(listed(&mut tree), ["a.rs", "sub/", "sub/b.rs"]);
 	}
 
 	#[test]
