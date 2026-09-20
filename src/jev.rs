@@ -14,17 +14,18 @@ use serde_json::Value;
 pub enum Endpoint {
 	Openrouter,
 	Typesafe,
-	/// Any Jev-compatible server on localhost (e.g. a Core ML model behind a
-	/// shim). Needs no API key; override the URL with `JEGREP_ENDPOINT_URL`.
+	/// Any Jev-compatible server, unauthenticated, at `JEGREP_ENDPOINT_URL`
+	/// (default `http://127.0.0.1:8756/`). No failover.
 	Local,
 }
 
 impl Endpoint {
-	pub const fn key_name(self) -> &'static str {
+	/// Variable holding the bearer key; `None` for the unauthenticated `Local`.
+	pub const fn key_name(self) -> Option<&'static str> {
 		match self {
-			Self::Openrouter => "OPENROUTER_API_KEY",
-			Self::Typesafe => "TYPESAFE_API_KEY",
-			Self::Local => "",
+			Self::Openrouter => Some("OPENROUTER_API_KEY"),
+			Self::Typesafe => Some("TYPESAFE_API_KEY"),
+			Self::Local => None,
 		}
 	}
 
@@ -35,44 +36,42 @@ impl Endpoint {
 			Self::Local => "http://127.0.0.1:8756/",
 		}
 	}
-
-	/// Resolved URL for this endpoint; only `Local` reads the environment.
-	fn resolve_url(self) -> String {
-		match self {
-			Self::Local => {
-				std::env::var("JEGREP_ENDPOINT_URL").unwrap_or_else(|_| Self::Local.url().to_owned())
-			},
-			_ => self.url().to_owned(),
-		}
-	}
 }
+
+/// Variable overriding [`Endpoint::Local`]'s URL (env or `~/.env`).
+const LOCAL_URL_VAR: &str = "JEGREP_ENDPOINT_URL";
 
 struct Provider {
 	url:  String,
-	auth: String,
+	/// `Authorization` header value; `None` sends no header.
+	auth: Option<String>,
 }
 
-/// Load both keys independently, preserving process-env precedence for each.
+/// Resolve the providers to try in order. Hosted endpoints load both keys
+/// independently (preserving process-env precedence for each) and fail over
+/// between them; `Local` is a single provider with no key.
 fn providers(
 	preferred: Option<Endpoint>,
 	mut lookup: impl FnMut(&str) -> Result<String, String>,
 ) -> Result<Vec<Provider>, String> {
-	if preferred == Some(Endpoint::Local) {
-		// A local backend authenticates nothing; single provider, no failover.
-		return Ok(vec![Provider { url: Endpoint::Local.resolve_url(), auth: String::new() }]);
-	}
-	let first = preferred.unwrap_or(Endpoint::Openrouter);
-	let second = match first {
-		Endpoint::Openrouter => Endpoint::Typesafe,
-		Endpoint::Typesafe => Endpoint::Openrouter,
-		Endpoint::Local => unreachable!("handled above"),
+	let order = match preferred.unwrap_or(Endpoint::Openrouter) {
+		Endpoint::Local => {
+			let url = lookup(LOCAL_URL_VAR).unwrap_or_else(|_| Endpoint::Local.url().to_owned());
+			return Ok(vec![Provider { url, auth: None }]);
+		},
+		Endpoint::Openrouter => [Endpoint::Openrouter, Endpoint::Typesafe],
+		Endpoint::Typesafe => [Endpoint::Typesafe, Endpoint::Openrouter],
 	};
 	let mut providers = Vec::new();
-	for endpoint in [first, second] {
-		match lookup(endpoint.key_name()) {
-			Ok(key) => {
-				providers.push(Provider { url: endpoint.resolve_url(), auth: format!("Bearer {key}") })
-			},
+	for endpoint in order {
+		let Some(key_name) = endpoint.key_name() else {
+			continue;
+		};
+		match lookup(key_name) {
+			Ok(key) => providers.push(Provider {
+				url:  endpoint.url().to_owned(),
+				auth: Some(format!("Bearer {key}")),
+			}),
 			Err(e) if preferred == Some(endpoint) => return Err(e),
 			Err(_) => {},
 		}
@@ -203,7 +202,7 @@ pub struct Client {
 
 impl Client {
 	pub fn new(endpoint: Option<Endpoint>, model: String) -> Result<Self, String> {
-		let providers = providers(endpoint, crate::env::api_key)?;
+		let providers = providers(endpoint, crate::env::lookup)?;
 		let question_chunk = match std::env::var("JEGREP_QUESTION_CHUNK") {
 			Ok(value) => Some(
 				value
@@ -339,8 +338,8 @@ impl Client {
 				.agent
 				.post(&provider.url)
 				.header("Content-Type", "application/json");
-			if !provider.auth.is_empty() {
-				request = request.header("Authorization", &provider.auth);
+			if let Some(auth) = &provider.auth {
+				request = request.header("Authorization", auth);
 			}
 			let sent = request.send_json(&body);
 			match sent {
@@ -430,7 +429,7 @@ mod tests {
 		let both = |name: &str| Ok(name.to_owned());
 		let auto = providers(None, both).unwrap();
 		assert_eq!(auto[0].url, Endpoint::Openrouter.url());
-		assert_eq!(auto[1].auth, "Bearer TYPESAFE_API_KEY");
+		assert_eq!(auto[1].auth.as_deref(), Some("Bearer TYPESAFE_API_KEY"));
 		let explicit = providers(Some(Endpoint::Typesafe), both).unwrap();
 		assert_eq!(explicit[0].url, Endpoint::Typesafe.url());
 		let only_typesafe = |name: &str| {
@@ -451,8 +450,17 @@ mod tests {
 		let no_keys = |_: &str| Err::<String, _>("no keys configured".into());
 		let picked = providers(Some(Endpoint::Local), no_keys).unwrap();
 		assert_eq!(picked.len(), 1, "local endpoint must not add a failover provider");
-		assert!(picked[0].auth.is_empty());
+		assert!(picked[0].auth.is_none());
 		assert_eq!(picked[0].url, Endpoint::Local.url());
+		// The URL override comes through the same lookup as keys; keys present
+		// in the environment do not add a hosted fallback.
+		let with_url = |name: &str| match name {
+			LOCAL_URL_VAR => Ok("http://127.0.0.1:8010/v1/systemone".to_owned()),
+			_ => Ok("key".to_owned()),
+		};
+		let picked = providers(Some(Endpoint::Local), with_url).unwrap();
+		assert_eq!(picked.len(), 1);
+		assert_eq!(picked[0].url, "http://127.0.0.1:8010/v1/systemone");
 	}
 
 	#[test]
@@ -464,7 +472,7 @@ mod tests {
 				.timeout_global(Some(Duration::from_secs(5)))
 				.build()
 				.new_agent(),
-			providers:      vec![Provider { url, auth: String::new() }],
+			providers:      vec![Provider { url, auth: None }],
 			active:         std::sync::atomic::AtomicUsize::new(0),
 			model:          "jev-latest".into(),
 			max_retries:    0,
@@ -547,9 +555,9 @@ mod tests {
 				question_chunk: None,
 			};
 			client.providers =
-				vec![Provider { url: primary, auth: "Bearer primary".into() }, Provider {
+				vec![Provider { url: primary, auth: Some("Bearer primary".into()) }, Provider {
 					url:  fallback,
-					auth: "Bearer fallback".into(),
+					auth: Some("Bearer fallback".into()),
 				}];
 			client.max_retries = 0;
 			for _ in 0..2 {
@@ -587,7 +595,7 @@ mod tests {
 				.timeout_global(Some(Duration::from_secs(5)))
 				.build()
 				.new_agent(),
-			providers: vec![Provider { url, auth: "Bearer primary".into() }],
+			providers: vec![Provider { url, auth: Some("Bearer primary".into()) }],
 			active: std::sync::atomic::AtomicUsize::new(0),
 			model: "jev-latest".into(),
 			max_retries: 0,
@@ -758,7 +766,7 @@ mod tests {
 		let mut client = chunk_client(primary, Some(1));
 		client
 			.providers
-			.push(Provider { url: fallback, auth: "Bearer fallback".into() });
+			.push(Provider { url: fallback, auth: Some("Bearer fallback".into()) });
 		let response = client.system_one(&Value::Null, &noul_questions(3)).unwrap();
 		assert_eq!(response.answers.len(), 3);
 		assert_eq!(response.usage.input_tokens, 330);

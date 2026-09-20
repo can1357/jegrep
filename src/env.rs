@@ -1,8 +1,9 @@
-//! Locate provider API keys: process env first, then `~/.env`.
+//! Locate provider settings (API keys, endpoint URLs): process env first,
+//! then `~/.env`. Empty values count as unset.
 
 use std::{env, fs, path::PathBuf};
 
-pub fn api_key(key_name: &str) -> Result<String, String> {
+pub fn lookup(key_name: &str) -> Result<String, String> {
 	if let Ok(k) = env::var(key_name)
 		&& !k.trim().is_empty()
 	{
