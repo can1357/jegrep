@@ -93,8 +93,8 @@ struct Cli {
 	/// Emit the result as JSON on stdout.
 	#[arg(long)]
 	json:            bool,
-	/// Compact, LLM-oriented digest on stdout: one `path score spans` line per
-	/// hit, no color, grouping, or snippets.
+	/// Compact, LLM-oriented digest on stdout: one tab-separated `path score
+	/// spans` line per hit, no color, grouping, or snippets.
 	#[arg(long, conflicts_with_all = ["json", "tree"])]
 	compact:         bool,
 	/// Run a benchmark: a JSON file of {name, query, expect[]} cases over PATH

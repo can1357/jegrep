@@ -556,32 +556,6 @@ impl Ui {
 		}
 	}
 
-	/// Digest for LLM readers: one line per hit, no indentation, color,
-	/// grouping, snippets, or near misses. Each row is `path score spans`
-	/// where `spans` is a comma-separated list of `start-end` line ranges,
-	/// strongest first, or `?` when the hit carries no localized range. Hits
-	/// keep the terminal report's order: weakest first, strongest last.
-	pub fn print_compact(out: &mut impl Write, tree: &Tree, hits: &[usize]) {
-		let mut ordered: Vec<_> = hits.iter().map(|&i| &tree.nodes[i]).collect();
-		ordered.sort_by(|a, b| {
-			let (sa, sb) = (a.content_score.unwrap_or(0.0), b.content_score.unwrap_or(0.0));
-			sa.total_cmp(&sb).then(a.rel.cmp(&b.rel))
-		});
-		for n in ordered {
-			let spans = ranked_heat(&n.heat, COMPACT_RANGES);
-			let spans = if spans.is_empty() {
-				"?".to_string()
-			} else {
-				spans
-					.iter()
-					.map(|r| line_span(r.start, r.end))
-					.collect::<Vec<_>>()
-					.join(",")
-			};
-			let _ = writeln!(out, "{} {:.2} {spans}", n.rel, n.content_score.unwrap_or(0.0));
-		}
-	}
-
 	/// Rank the final display independently of the search's best-first work
 	/// order.
 	pub fn print_hits(&self, out: &mut impl Write, tree: &Tree, hits: &[usize]) {
@@ -720,11 +694,8 @@ pub fn fit(s: &str, w: usize) -> String {
 	format!("…{tail}")
 }
 
-/// How many line ranges a compact hit row carries.
-const COMPACT_RANGES: usize = 3;
-
 /// `start-end`, or `start` for a single line.
-fn line_span(start: usize, end: usize) -> String {
+pub fn line_span(start: usize, end: usize) -> String {
 	if start == end {
 		start.to_string()
 	} else {
@@ -739,7 +710,7 @@ fn line_ref(rel: &str, start: usize, end: usize) -> String {
 }
 
 /// The most relevant ranges, strongest first, then earliest.
-fn ranked_heat(heat: &[HeatRange], limit: usize) -> Vec<&HeatRange> {
+pub fn ranked_heat(heat: &[HeatRange], limit: usize) -> Vec<&HeatRange> {
 	let mut sorted: Vec<&HeatRange> = heat.iter().filter(|r| r.p > 0.0).collect();
 	sorted.sort_by(|a, b| b.p.total_cmp(&a.p).then(a.start.cmp(&b.start)));
 	sorted.truncate(limit);
@@ -830,55 +801,5 @@ mod tests {
 		assert!(body[2].starts_with("src/parser.rs:1-10"));
 		assert!(body[3].starts_with("src/parser.rs:31-40"));
 		assert!(!body.iter().any(|l| l.contains(":11-20")));
-	}
-
-	#[test]
-	fn compact_rows_carry_path_score_and_spans_weakest_first() {
-		let root = std::env::temp_dir().join("jegrep-compact-rows");
-		let _ = std::fs::remove_dir_all(&root);
-		std::fs::create_dir_all(root.join("core")).unwrap();
-		std::fs::write(root.join("core/handlers.go"), "package core\n").unwrap();
-		std::fs::write(root.join("core/requests.go"), "package core\n").unwrap();
-		std::fs::write(root.join("notes.txt"), "no heat here\n").unwrap();
-		let mut tree = Tree::new(&root, false).unwrap();
-		let core = tree.nodes.iter().position(|n| n.rel == "core/").unwrap();
-		tree.expand(core);
-		let mut hits = Vec::new();
-		for (i, n) in tree.nodes.iter_mut().enumerate() {
-			let heat = match n.rel.as_str() {
-				// Ranges arrive strongest-first, and single-line spans drop the
-				// end line number.
-				"core/handlers.go" => {
-					n.content_score = Some(0.72);
-					vec![
-						HeatRange { start: 400, end: 420, p: 0.30, snippet: String::new() },
-						HeatRange { start: 120, end: 180, p: 0.72, snippet: String::new() },
-						HeatRange { start: 401, end: 401, p: 0.60, snippet: String::new() },
-					]
-				},
-				// A whole-file hit is one span, not a `whole file` word.
-				"core/requests.go" => {
-					n.content_score = Some(0.86);
-					vec![passage(1, 546, 0.91)]
-				},
-				// No localized range to report.
-				"notes.txt" => {
-					n.content_score = Some(0.40);
-					Vec::new()
-				},
-				_ => continue,
-			};
-			n.state = State::Hit;
-			n.heat = heat;
-			hits.push(i);
-		}
-		let mut out = Vec::new();
-		Ui::print_compact(&mut out, &tree, &hits);
-		assert_eq!(
-			String::from_utf8(out).unwrap(),
-			"notes.txt 0.40 ?\ncore/handlers.go 0.72 120-180,401,400-420\ncore/requests.go 0.86 \
-			 1-546\n"
-		);
-		let _ = std::fs::remove_dir_all(&root);
 	}
 }

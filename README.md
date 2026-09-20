@@ -91,11 +91,12 @@ src/jev.rs 0.96 1-458
 # root /home/user/computing/terminal/jegrep · judged 90 · read 20 files · $0.0015 · 1.9s
 ```
 
-Each row is `path score spans`: `spans` holds up to three `start-end` line
-ranges, strongest first, or `?` when the hit carries no localized range. Rows
-are ordered like the terminal report — weakest first, strongest last — and the
-`#` trailer carries the root the paths are relative to plus what the search
-touched. `--compact` conflicts with `--json` and `--tree`.
+Each row is tab-separated `path`, `score`, `spans` (so paths with spaces
+split cleanly): `spans` holds up to three `start-end` line ranges, strongest
+first, or `?` when the hit carries no localized range. Rows are ordered like
+the terminal report — weakest first, strongest last — and the `#` trailer
+carries the root the paths are relative to plus what the search touched.
+`--compact` conflicts with `--json` and `--tree`.
 
 ## Output
 
@@ -119,9 +120,9 @@ listed 102 · judged 90 · expanded 11 dirs · read 20 files (69.4 KB) · 9 requ
 
 Every hit row opens with the root-relative `dirname/filename`, and every
 localized passage under it opens with `dirname/filename:first-last`, so one
-selection pastes straight into an editor. Ranges are strongest first under a
-hit, within the top three by relevance, and hits are ordered weakest first so
-the best result sits next to your prompt. Directory runs are separated by a
+selection pastes straight into an editor. A hit shows its top three ranges by
+relevance, strongest last, and hits are ordered weakest first, so the best
+result sits next to your prompt. Directory runs are separated by a
 blank line rather than a directory header, which would only repeat the path.
 
 ## Commands

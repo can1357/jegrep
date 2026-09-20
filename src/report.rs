@@ -3,7 +3,40 @@
 
 use std::io::Write;
 
-use crate::{ctx::Ctx, tree::Kind, ui::Ui};
+use crate::{
+	ctx::Ctx,
+	tree::{Kind, Tree},
+	ui,
+};
+
+/// Line ranges a compact hit row carries.
+const COMPACT_RANGES: usize = 3;
+
+/// Digest for LLM readers: one tab-separated `path score spans` row per hit,
+/// no color, grouping, snippets or near misses. `spans` is a comma-separated
+/// list of `start-end` line ranges, strongest first, or `?` when the hit
+/// carries no localized range. Rows keep the terminal report's order: weakest
+/// first, strongest last.
+fn compact_rows(out: &mut impl Write, tree: &Tree, hits: &[usize]) {
+	let mut ordered: Vec<_> = hits.iter().map(|&i| &tree.nodes[i]).collect();
+	ordered.sort_by(|a, b| {
+		let (sa, sb) = (a.content_score.unwrap_or(0.0), b.content_score.unwrap_or(0.0));
+		sa.total_cmp(&sb).then(a.rel.cmp(&b.rel))
+	});
+	for n in ordered {
+		let spans = ui::ranked_heat(&n.heat, COMPACT_RANGES);
+		let spans = if spans.is_empty() {
+			"?".to_string()
+		} else {
+			spans
+				.iter()
+				.map(|r| ui::line_span(r.start, r.end))
+				.collect::<Vec<_>>()
+				.join(",")
+		};
+		let _ = writeln!(out, "{}\t{:.2}\t{spans}", n.rel, n.content_score.unwrap_or(0.0));
+	}
+}
 
 pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 	ctx.ui.finish();
@@ -21,7 +54,7 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 			ctx.tau,
 			ctx.rounds
 		);
-		Ui::print_compact(&mut out, &ctx.tree, &hits);
+		compact_rows(&mut out, &ctx.tree, &hits);
 		let _ = writeln!(
 			out,
 			"# root {} · judged {} · read {} files · ${:.4} · {:.1}s",
@@ -205,5 +238,65 @@ pub fn human_count(n: u64) -> String {
 		format!("{:.1}k", n as f64 / 1e3)
 	} else {
 		n.to_string()
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use std::{
+		fs,
+		time::{SystemTime, UNIX_EPOCH},
+	};
+
+	use super::compact_rows;
+	use crate::tree::{HeatRange, State, Tree};
+
+	fn heat(start: usize, end: usize, p: f64) -> HeatRange {
+		HeatRange { start, end, p, snippet: String::new() }
+	}
+
+	#[test]
+	fn compact_rows_carry_path_score_and_spans_weakest_first() {
+		let nanos = SystemTime::now()
+			.duration_since(UNIX_EPOCH)
+			.unwrap()
+			.as_nanos();
+		let root = std::env::temp_dir().join(format!("jegrep-compact-{nanos}"));
+		fs::create_dir_all(root.join("core")).unwrap();
+		fs::write(root.join("core/handlers.go"), "package core\n").unwrap();
+		fs::write(root.join("core/requests.go"), "package core\n").unwrap();
+		fs::write(root.join("notes.txt"), "no heat here\n").unwrap();
+		let mut tree = Tree::new(&root, false).unwrap();
+		let core = tree.nodes.iter().position(|n| n.rel == "core/").unwrap();
+		tree.expand(core);
+		let mut hits = Vec::new();
+		for (i, n) in tree.nodes.iter_mut().enumerate() {
+			let (score, ranges) = match n.rel.as_str() {
+				// Spans come out strongest first; single-line spans drop the end.
+				"core/handlers.go" => {
+					(0.72, vec![heat(400, 420, 0.30), heat(120, 180, 0.72), heat(401, 401, 0.60)])
+				},
+				// A whole-file hit is one span, not a `whole file` word.
+				"core/requests.go" => (0.86, vec![heat(1, 546, 0.91)]),
+				// No localized range to report.
+				"notes.txt" => (0.40, Vec::new()),
+				_ => continue,
+			};
+			n.state = State::Hit;
+			n.content_score = Some(score);
+			n.heat = ranges;
+			hits.push(i);
+		}
+		let mut out = Vec::new();
+		compact_rows(&mut out, &tree, &hits);
+		let _ = fs::remove_dir_all(&root);
+		assert_eq!(
+			String::from_utf8(out).unwrap(),
+			concat!(
+				"notes.txt\t0.40\t?\n",
+				"core/handlers.go\t0.72\t120-180,401,400-420\n",
+				"core/requests.go\t0.86\t1-546\n"
+			)
+		);
 	}
 }
