@@ -93,6 +93,10 @@ struct Cli {
 	/// Emit the result as JSON on stdout.
 	#[arg(long)]
 	json:            bool,
+	/// Compact, LLM-oriented digest on stdout: one `path score spans` line per
+	/// hit, no color, grouping, or snippets.
+	#[arg(long, conflicts_with_all = ["json", "tree"])]
+	compact:         bool,
 	/// Run a benchmark: a JSON file of {name, query, expect[]} cases over PATH
 	/// (the lone positional). Prints a table.
 	#[arg(long, value_name = "CASES.json")]
@@ -270,5 +274,5 @@ fn main() {
 	);
 	ctx.ui.workspace(&ctx.tree);
 	strat.run(&mut ctx);
-	report::print(&ctx, cli.json, cli.tree);
+	report::print(&ctx, cli.json, cli.tree, cli.compact);
 }

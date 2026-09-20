@@ -3,13 +3,36 @@
 
 use std::io::Write;
 
-use crate::{ctx::Ctx, tree::Kind};
+use crate::{ctx::Ctx, tree::Kind, ui::Ui};
 
-pub fn print(ctx: &Ctx, json: bool, tree: bool) {
+pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 	ctx.ui.finish();
 	let hits = ctx.hits();
 	let elapsed = ctx.started.elapsed();
 	let s = &ctx.stats;
+
+	if compact {
+		let mut out = std::io::stdout().lock();
+		let _ = writeln!(
+			out,
+			"\"{}\" → {} hit(s) · τ {:.2} · round {}",
+			ctx.opts.query,
+			hits.len(),
+			ctx.tau,
+			ctx.rounds
+		);
+		Ui::print_compact(&mut out, &ctx.tree, &hits);
+		let _ = writeln!(
+			out,
+			"# root {} · judged {} · read {} files · ${:.4} · {:.1}s",
+			ctx.tree.root.display(),
+			s.judged,
+			s.files_read,
+			s.usd(),
+			elapsed.as_secs_f64()
+		);
+		return;
+	}
 
 	if json {
 		let hits_json: Vec<serde_json::Value> = hits

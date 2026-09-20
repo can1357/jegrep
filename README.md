@@ -14,9 +14,11 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
 - **Semantic:** Finds concepts ("where do we verify JWT tokens?"), not just strings.
 - **No Index:** Searches the live tree on every run. Nothing to build, refresh, or go stale.
 - **Calibrated:** Every path gets an absolute yes/no probability, so thresholds mean something and batches stay comparable.
-- **Precise:** Returns files *and* line ranges, with original line numbers and merged adjacent passages.
+- **Precise:** Returns files *and* line ranges as `dirname/filename:first-last`
+  references, ready to paste into an editor, with original line numbers and
+  merged adjacent passages.
 - **Cheap:** Jev bills $0.042 per million input tokens, output free. A typical search over a few thousand files runs **$0.01–0.03**.
-- **Agent-Ready:** `--json` output for scripts and coding agents, plus a benchmark harness for regressions.
+- **Agent-Ready:** `--json` for scripts and coding agents, `--compact` for a token-lean digest, plus a benchmark harness for regressions.
 
 ## Quick Start
 
@@ -74,6 +76,54 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
 jegrep "how is the database connection pooled?" --json | jq .
 ```
 
+`--compact` emits a token-lean digest instead: one row per hit, no color,
+indentation, grouping, or snippets.
+
+```bash
+jegrep "how are request retries counted and reported?" --compact
+```
+
+```
+"how are request retries counted and reported?" → 3 hit(s) · τ 0.20 · round 1
+benches/run.py 0.72 294-385
+src/report.rs 0.73 1-209
+src/jev.rs 0.96 1-458
+# root /home/user/computing/terminal/jegrep · judged 90 · read 20 files · $0.0015 · 1.9s
+```
+
+Each row is `path score spans`: `spans` holds up to three `start-end` line
+ranges, strongest first, or `?` when the hit carries no localized range. Rows
+are ordered like the terminal report — weakest first, strongest last — and the
+`#` trailer carries the root the paths are relative to plus what the search
+touched. `--compact` conflicts with `--json` and `--tree`.
+
+## Output
+
+```bash
+jegrep "how are request retries counted and reported?"
+```
+
+```
+ 3 hit(s) for "how are request retries counted and reported?"  · round 1 · τ = 0.20
+
+   src/report.rs  0.70 · whole file · 209 lines
+
+   benches/run.py  0.72 · 92 lines shown
+     benches/run.py:294-385  0.72  …                      failures=errors, query_success=mean("query_success"),
+
+   src/jev.rs  0.97 · 458 lines shown
+     src/jev.rs:1-458  0.97  //! Minimal Jev (`TypeSafe` System One) HTTP client over ureq.
+
+listed 102 · judged 90 · expanded 11 dirs · read 20 files (69.4 KB) · 9 requests · 36.2k tokens · $0.0015 · 2.1s wall / 4.8s api
+```
+
+Every hit row opens with the root-relative `dirname/filename`, and every
+localized passage under it opens with `dirname/filename:first-last`, so one
+selection pastes straight into an editor. Ranges are strongest first under a
+hit, within the top three by relevance, and hits are ordered weakest first so
+the best result sits next to your prompt. Directory runs are separated by a
+blank line rather than a directory header, which would only repeat the path.
+
 ## Commands
 
 ### `jegrep [query] [path]`
@@ -101,6 +151,7 @@ jegrep "how is the database connection pooled?"
 | `--hidden` | Include dot-files and dot-folders | `false` |
 | `--tree` | Print the annotated exploration tree | `false` |
 | `--json` | JSON output format | `false` |
+| `--compact` | Token-lean digest for LLM readers (see Output) | `false` |
 | `--progress <mode>` | `live` \| `log` (terminal-aware fallback) | `live` |
 | `-v`, `--verbose` | Log every judgment | `false` |
 | `-q`, `--quiet` | Suppress progress on stderr | `false` |
