@@ -100,6 +100,7 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 				  "retries": crate::jev::RETRIES.load(std::sync::atomic::Ordering::Relaxed),
 				  "provider": ctx.client.active().name(),
 				  "failed_over": ctx.client.failed_over(),
+				  "secrets_withheld": crate::secrets::withheld(),
 				  "waves": s.waves,
 				  "api_ms": s.api_time.as_millis(),
 				  "entries_judged": s.judged,
@@ -200,8 +201,8 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 		out,
 		"{}",
 		ui.dim(&format!(
-			"listed {listed} · judged {} · expanded {} dirs · read {} files ({}){} · {} requests{}{} \
-			 via {}{} · {} tokens · ${:.4} · {:.1}s wall / {:.1}s api",
+			"listed {listed} · judged {} · expanded {} dirs · read {} files ({}){}{} · {} \
+			 requests{}{} via {}{} · {} tokens · ${:.4} · {:.1}s wall / {:.1}s api",
 			s.judged,
 			s.expanded,
 			s.files_read,
@@ -210,6 +211,14 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 				format!(" · sniffed {} heads ({})", s.sniffed, crate::tree::human_size(s.sniff_bytes))
 			} else {
 				String::new()
+			},
+			{
+				let withheld = crate::secrets::withheld();
+				if withheld > 0 {
+					format!(" · withheld {withheld} credential file(s), --allow-secrets to send")
+				} else {
+					String::new()
+				}
 			},
 			s.requests,
 			if s.errors > 0 {

@@ -288,6 +288,7 @@ impl Strategy for Cascade {
 						files.push(FilePlan { node, total, truncated: read.truncated, passages });
 					}
 				},
+				Err(e @ questions::FileErr::Secret(_)) => ctx.mark_skip(node, e.to_string()),
 				Err(e) => ctx.ui.error(&format!("cascade read {}: {e}", n.rel)),
 			}
 		}

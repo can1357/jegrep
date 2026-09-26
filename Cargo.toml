@@ -16,6 +16,7 @@ serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 ureq = { version = "3.4.2", features = ["json"] }
 globset = "0.4"
+memchr = "2"
 parking_lot = "0.12.5"
 grep-regex = "0.1"
 grep-searcher = "0.1"

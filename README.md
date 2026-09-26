@@ -158,6 +158,7 @@ jegrep "how is the database connection pooled?"
 | `--only <provider>` | Exactly this provider: error if its key is absent or a request fails, never fail over | unset |
 | `--model <id>` | Jev model id or alias | `jev-latest` |
 | `--hidden` | Include dot-files and dot-folders | `false` |
+| `--allow-secrets` | Send files whose content looks like credential material instead of withholding them | `false` |
 | `--tree` | Print the annotated exploration tree | `false` |
 | `--json` | JSON output format | `false` |
 | `--compact` | Token-lean digest for LLM readers (see Output) | `false` |
@@ -261,9 +262,20 @@ and `.env.*` (except `.env.example`-style templates), `.netrc`, `.npmrc`,
 `.pypirc`, `.git-credentials`, `credentials.json`, `id_rsa`-style SSH keys, and
 anything ending in `.pem`, `.key`, `.p12`, `.pfx`, `.jks`, `.ppk`, `.kdbx`,
 `.gpg`, `.crt`, `.tfvars` or `.tfstate` (full list: `SECRET_FILES` /
-`SECRET_EXT` in `src/tree.rs`). The deny lists are a safety net for build
-noise and obvious key material, not a secret scanner — a token pasted into
-`config.yaml` is still ordinary text.
+`SECRET_EXT` in `src/tree.rs`).
+
+Names are only a first line: a Google service-account key downloaded as
+`my-project-4f3a1c.json` or an AWS profile in `deploy/aws_credentials.txt` has
+no listed name. So every file is also checked by *content* before its bytes
+leave the machine (`src/secrets.rs`): PEM private-key blocks, service-account
+JSON, `aws_secret_access_key` / `AKIA…` pairs, kubeconfig `client-key-data`,
+and `ghp_` / `xoxb-` / `sk-` style tokens. Matching files are skipped, named
+in the log (`withheld: private key`), and tallied in the footer and in `--json`
+`stats.secrets_withheld`. The markers are shaped so parsers and docs that
+merely mention a format pass; fixtures with real key material are withheld,
+and `--allow-secrets` sends them anyway. This is still a safety net, not a
+secret scanner — an unfamiliar token pasted into `config.yaml` is ordinary
+text.
 
 ## Troubleshooting
 

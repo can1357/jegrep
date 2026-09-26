@@ -13,6 +13,7 @@ mod jev;
 mod pool;
 mod questions;
 mod report;
+mod secrets;
 mod strategies;
 mod tree;
 mod ui;
@@ -91,6 +92,11 @@ struct Cli {
 	/// Include hidden (dot) files and folders.
 	#[arg(long)]
 	hidden:          bool,
+	/// Send files whose content looks like credential material (private keys,
+	/// service-account JSON, cloud/kubeconfig secrets, API tokens). Without
+	/// this they are skipped and counted in the footer.
+	#[arg(long)]
+	allow_secrets:   bool,
 	/// Print the annotated exploration tree at the end.
 	#[arg(long)]
 	tree:            bool,
@@ -196,6 +202,7 @@ fn main() {
 		ui.fatal("thresholds must be probabilities in 0..=1");
 		std::process::exit(2);
 	}
+	secrets::allow(cli.allow_secrets);
 	let route = match cli.only {
 		Some(endpoint) => jev::Route::Only(endpoint),
 		None => jev::Route::Prefer(cli.endpoint),

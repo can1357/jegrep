@@ -258,6 +258,8 @@ pub fn dir_peek_batch(
 pub enum FileErr {
 	Binary,
 	Empty,
+	/// Content looks like credential material (see [`crate::secrets`]).
+	Secret(&'static str),
 	Io(String),
 	Api(String),
 }
@@ -267,6 +269,7 @@ impl std::fmt::Display for FileErr {
 		match self {
 			Self::Binary => write!(f, "binary"),
 			Self::Empty => write!(f, "empty"),
+			Self::Secret(marker) => write!(f, "withheld: {marker} (--allow-secrets to send)"),
 			Self::Io(e) => write!(f, "io: {e}"),
 			Self::Api(e) => write!(f, "api: {e}"),
 		}
@@ -281,7 +284,9 @@ pub struct ReadText {
 }
 
 /// Read up to `max_bytes` of a text file. Rejects binaries (NUL in the first 8
-/// KB) and blank files; trims a truncated read back to the last full line.
+/// KB), blank files, and credential material (every byte that could reach a
+/// provider passes through here); trims a truncated read back to the last
+/// full line.
 pub fn read_text(path: &Path, max_bytes: usize) -> Result<ReadText, FileErr> {
 	let mut f = fs::File::open(path).map_err(|e| FileErr::Io(e.to_string()))?;
 	let mut buf = vec![0u8; max_bytes + 1];
@@ -308,6 +313,9 @@ pub fn read_text(path: &Path, max_bytes: usize) -> Result<ReadText, FileErr> {
 		if let Some(p) = buf.iter().rposition(|&b| b == b'\n') {
 			buf.truncate(p + 1);
 		}
+	}
+	if let Some(marker) = crate::secrets::withhold(path, &buf) {
+		return Err(FileErr::Secret(marker));
 	}
 	let text = String::from_utf8_lossy(&buf).into_owned();
 	if text.lines().all(|l| l.trim().is_empty()) {
@@ -628,4 +636,65 @@ pub fn sniff_batch(
 		 "files": Value::Object(listing),
 	});
 	(state, questions)
+}
+
+#[cfg(test)]
+mod tests {
+	use std::{
+		fs,
+		time::{SystemTime, UNIX_EPOCH},
+	};
+
+	use super::{FileErr, read_text};
+
+	#[test]
+	fn credential_content_is_withheld_regardless_of_file_name() {
+		let nanos = SystemTime::now()
+			.duration_since(UNIX_EPOCH)
+			.unwrap()
+			.as_nanos();
+		let root = std::env::temp_dir().join(format!("jegrep-secrets-{nanos}"));
+		fs::create_dir_all(&root).unwrap();
+		let files: [(&str, &str, Option<&str>); 6] = [
+			(
+				"service-account-key.json",
+				"{\"type\": \"service_account\",\"private_key\":\"-----BEGIN PRIVATE \
+				 KEY-----\\nCANARY\"}",
+				Some("service-account json"),
+			),
+			(
+				"my-project-4f3a1c.json",
+				"{\"private_key\": \"-----BEGIN PRIVATE KEY-----\\nCANARY\\n-----END PRIVATE \
+				 KEY-----\\n\"}",
+				Some("service-account json"),
+			),
+			(
+				"aws_credentials.txt",
+				"[default]\naws_access_key_id = AKIAIOSFODNN7EXAMPLE\naws_secret_access_key = \
+				 wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\n",
+				Some("aws credentials"),
+			),
+			(
+				"kubeconfig",
+				"apiVersion: v1\nusers:\n- user:\n    client-key-data: \
+				 LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQo=\n",
+				Some("kubeconfig client key"),
+			),
+			("pay.rs", "fn authenticate(provider: &str) -> Token {\n    todo!()\n}\n", None),
+			("pem.rs", "const HEADER: &str = \"-----BEGIN RSA PRIVATE KEY-----\";\n", None),
+		];
+		for (name, text, expected) in files {
+			let path = root.join(name);
+			fs::write(&path, text).unwrap();
+			let outcome = read_text(&path, 32 * 1024);
+			match (outcome, expected) {
+				(Err(FileErr::Secret(marker)), Some(expected)) => {
+					assert_eq!(marker, expected, "{name}")
+				},
+				(Ok(read), None) => assert_eq!(read.text, text, "{name}"),
+				(other, _) => panic!("{name}: {:?}", other.map(|r| r.text)),
+			}
+		}
+		fs::remove_dir_all(&root).unwrap();
+	}
 }
