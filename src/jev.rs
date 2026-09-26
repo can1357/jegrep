@@ -20,6 +20,15 @@ pub enum Endpoint {
 }
 
 impl Endpoint {
+	/// CLI spelling, as shown in the banner and footer.
+	pub const fn name(self) -> &'static str {
+		match self {
+			Self::Openrouter => "openrouter",
+			Self::Typesafe => "typesafe",
+			Self::Local => "local",
+		}
+	}
+
 	/// Variable holding the bearer key; `None` for the unauthenticated `Local`.
 	pub const fn key_name(self) -> Option<&'static str> {
 		match self {
@@ -42,34 +51,53 @@ impl Endpoint {
 const LOCAL_URL_VAR: &str = "JEGREP_ENDPOINT_URL";
 
 struct Provider {
-	url:  String,
+	endpoint: Endpoint,
+	url:      String,
 	/// `Authorization` header value; `None` sends no header.
-	auth: Option<String>,
+	auth:     Option<String>,
 }
 
-/// Resolve the providers to try in order. Hosted endpoints load both keys
-/// independently (preserving process-env precedence for each) and fail over
-/// between them; `Local` is a single provider with no key.
+/// Which providers a run may talk to. `--endpoint` picks [`Route::Prefer`]
+/// (an ordering: the other hosted account is a failover), `--only` picks
+/// [`Route::Only`] (exclusivity: the named account or nothing).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Route {
+	/// `preferred` first (default `OpenRouter`), the other hosted key as a
+	/// failover when both resolve.
+	Prefer(Option<Endpoint>),
+	/// Exactly this provider: its key must resolve, and a failing request is
+	/// an error rather than a request to the other account.
+	Only(Endpoint),
+}
+
+/// Resolve the providers to try in order. Each hosted key is loaded
+/// independently (preserving process-env precedence for each); `Local` is a
+/// single provider with no key.
 fn providers(
-	preferred: Option<Endpoint>,
+	route: Route,
 	mut lookup: impl FnMut(&str) -> Result<String, String>,
 ) -> Result<Vec<Provider>, String> {
+	let (preferred, exclusive) = match route {
+		Route::Prefer(preferred) => (preferred, false),
+		Route::Only(endpoint) => (Some(endpoint), true),
+	};
 	let order = match preferred.unwrap_or(Endpoint::Openrouter) {
 		Endpoint::Local => {
 			let url = lookup(LOCAL_URL_VAR).unwrap_or_else(|_| Endpoint::Local.url().to_owned());
-			return Ok(vec![Provider { url, auth: None }]);
+			return Ok(vec![Provider { endpoint: Endpoint::Local, url, auth: None }]);
 		},
 		Endpoint::Openrouter => [Endpoint::Openrouter, Endpoint::Typesafe],
 		Endpoint::Typesafe => [Endpoint::Typesafe, Endpoint::Openrouter],
 	};
 	let mut providers = Vec::new();
-	for endpoint in order {
+	for endpoint in order.into_iter().take(if exclusive { 1 } else { 2 }) {
 		let Some(key_name) = endpoint.key_name() else {
 			continue;
 		};
 		match lookup(key_name) {
 			Ok(key) => providers.push(Provider {
-				url:  endpoint.url().to_owned(),
+				endpoint,
+				url: endpoint.url().to_owned(),
 				auth: Some(format!("Bearer {key}")),
 			}),
 			Err(e) if preferred == Some(endpoint) => return Err(e),
@@ -201,8 +229,8 @@ pub struct Client {
 }
 
 impl Client {
-	pub fn new(endpoint: Option<Endpoint>, model: String) -> Result<Self, String> {
-		let providers = providers(endpoint, crate::env::lookup)?;
+	pub fn new(route: Route, model: String) -> Result<Self, String> {
+		let providers = providers(route, crate::env::lookup)?;
 		let question_chunk = match std::env::var("JEGREP_QUESTION_CHUNK") {
 			Ok(value) => Some(
 				value
@@ -227,6 +255,27 @@ impl Client {
 			max_retries: 6,
 			question_chunk,
 		})
+	}
+
+	/// Providers in the order they are tried, e.g. `openrouter → typesafe`.
+	pub fn route(&self) -> String {
+		self
+			.providers
+			.iter()
+			.map(|p| p.endpoint.name())
+			.collect::<Vec<_>>()
+			.join(" → ")
+	}
+
+	/// Provider that served the most recent successful request (the first one
+	/// configured until a failover succeeds).
+	pub fn active(&self) -> Endpoint {
+		self.providers[self.active.load(std::sync::atomic::Ordering::Relaxed)].endpoint
+	}
+
+	/// Whether a failover moved traffic off the first configured provider.
+	pub fn failed_over(&self) -> bool {
+		self.active.load(std::sync::atomic::Ordering::Relaxed) != 0
 	}
 
 	pub fn system_one(
@@ -427,10 +476,10 @@ mod tests {
 	#[test]
 	fn provider_selection() {
 		let both = |name: &str| Ok(name.to_owned());
-		let auto = providers(None, both).unwrap();
+		let auto = providers(Route::Prefer(None), both).unwrap();
 		assert_eq!(auto[0].url, Endpoint::Openrouter.url());
 		assert_eq!(auto[1].auth.as_deref(), Some("Bearer TYPESAFE_API_KEY"));
-		let explicit = providers(Some(Endpoint::Typesafe), both).unwrap();
+		let explicit = providers(Route::Prefer(Some(Endpoint::Typesafe)), both).unwrap();
 		assert_eq!(explicit[0].url, Endpoint::Typesafe.url());
 		let only_typesafe = |name: &str| {
 			if name == "TYPESAFE_API_KEY" {
@@ -439,16 +488,71 @@ mod tests {
 				Err("missing".into())
 			}
 		};
-		assert_eq!(providers(None, only_typesafe).unwrap()[0].url, Endpoint::Typesafe.url());
-		assert!(providers(Some(Endpoint::Openrouter), only_typesafe).is_err());
-		assert!(providers(None, |_| Err("missing".into())).is_err());
+		assert_eq!(
+			providers(Route::Prefer(None), only_typesafe).unwrap()[0].url,
+			Endpoint::Typesafe.url()
+		);
+		assert!(providers(Route::Prefer(Some(Endpoint::Openrouter)), only_typesafe).is_err());
+		assert!(providers(Route::Prefer(None), |_| Err("missing".into())).is_err());
+	}
+
+	#[test]
+	fn only_route_never_adds_the_other_account() {
+		// Both keys resolve, yet `--only` must yield a single provider so a
+		// failing request errors instead of being billed to the other account.
+		let both = |name: &str| Ok(name.to_owned());
+		let pinned = providers(Route::Only(Endpoint::Typesafe), both).unwrap();
+		assert_eq!(pinned.len(), 1);
+		assert_eq!(pinned[0].endpoint, Endpoint::Typesafe);
+		assert_eq!(pinned[0].auth.as_deref(), Some("Bearer TYPESAFE_API_KEY"));
+		let pinned = providers(Route::Only(Endpoint::Openrouter), both).unwrap();
+		assert_eq!(pinned.len(), 1);
+		assert_eq!(pinned[0].endpoint, Endpoint::Openrouter);
+		// The pinned key missing is an error even when the other key exists.
+		let only_openrouter = |name: &str| {
+			if name == "OPENROUTER_API_KEY" {
+				Ok("or-key".into())
+			} else {
+				Err("TYPESAFE_API_KEY missing".into())
+			}
+		};
+		assert!(matches!(
+			providers(Route::Only(Endpoint::Typesafe), only_openrouter),
+			Err(e) if e == "TYPESAFE_API_KEY missing"
+		));
+	}
+
+	#[test]
+	fn single_provider_client_errors_instead_of_failing_over() {
+		let (url, server) = server(401, 1, "pinned");
+		let client = Client {
+			agent:          ureq::Agent::config_builder()
+				.http_status_as_error(false)
+				.build()
+				.new_agent(),
+			providers:      vec![Provider {
+				endpoint: Endpoint::Typesafe,
+				url,
+				auth: Some("Bearer pinned".into()),
+			}],
+			active:         std::sync::atomic::AtomicUsize::new(0),
+			model:          "jev-latest".into(),
+			max_retries:    0,
+			question_chunk: None,
+		};
+		let result = client.system_one(&Value::Null, &BTreeMap::new());
+		assert!(matches!(result, Err(Error::Status(401, _))));
+		assert!(!client.failed_over());
+		assert_eq!(client.active(), Endpoint::Typesafe);
+		assert_eq!(client.route(), "typesafe");
+		server.join().unwrap();
 	}
 
 	#[test]
 	fn local_endpoint_needs_no_key() {
 		// A self-hosted judge has no API keys; selection must not require any.
 		let no_keys = |_: &str| Err::<String, _>("no keys configured".into());
-		let picked = providers(Some(Endpoint::Local), no_keys).unwrap();
+		let picked = providers(Route::Prefer(Some(Endpoint::Local)), no_keys).unwrap();
 		assert_eq!(picked.len(), 1, "local endpoint must not add a failover provider");
 		assert!(picked[0].auth.is_none());
 		assert_eq!(picked[0].url, Endpoint::Local.url());
@@ -458,7 +562,7 @@ mod tests {
 			LOCAL_URL_VAR => Ok("http://127.0.0.1:8010/v1/systemone".to_owned()),
 			_ => Ok("key".to_owned()),
 		};
-		let picked = providers(Some(Endpoint::Local), with_url).unwrap();
+		let picked = providers(Route::Only(Endpoint::Local), with_url).unwrap();
 		assert_eq!(picked.len(), 1);
 		assert_eq!(picked[0].url, "http://127.0.0.1:8010/v1/systemone");
 	}
@@ -472,7 +576,7 @@ mod tests {
 				.timeout_global(Some(Duration::from_secs(5)))
 				.build()
 				.new_agent(),
-			providers:      vec![Provider { url, auth: None }],
+			providers:      vec![Provider { endpoint: Endpoint::Local, url, auth: None }],
 			active:         std::sync::atomic::AtomicUsize::new(0),
 			model:          "jev-latest".into(),
 			max_retries:    0,
@@ -554,16 +658,26 @@ mod tests {
 				max_retries:    0,
 				question_chunk: None,
 			};
-			client.providers =
-				vec![Provider { url: primary, auth: Some("Bearer primary".into()) }, Provider {
-					url:  fallback,
-					auth: Some("Bearer fallback".into()),
-				}];
+			client.providers = vec![
+				Provider {
+					endpoint: Endpoint::Openrouter,
+					url:      primary,
+					auth:     Some("Bearer primary".into()),
+				},
+				Provider {
+					endpoint: Endpoint::Typesafe,
+					url:      fallback,
+					auth:     Some("Bearer fallback".into()),
+				},
+			];
 			client.max_retries = 0;
+			assert_eq!(client.route(), "openrouter → typesafe");
 			for _ in 0..2 {
 				client.system_one(&Value::Null, &BTreeMap::new()).unwrap();
 			}
 			assert_eq!(client.active.load(Ordering::Relaxed), 1);
+			assert!(client.failed_over());
+			assert_eq!(client.active(), Endpoint::Typesafe);
 			p.join().unwrap();
 			f.join().unwrap();
 		}
@@ -595,7 +709,11 @@ mod tests {
 				.timeout_global(Some(Duration::from_secs(5)))
 				.build()
 				.new_agent(),
-			providers: vec![Provider { url, auth: Some("Bearer primary".into()) }],
+			providers: vec![Provider {
+				endpoint: Endpoint::Openrouter,
+				url,
+				auth: Some("Bearer primary".into()),
+			}],
 			active: std::sync::atomic::AtomicUsize::new(0),
 			model: "jev-latest".into(),
 			max_retries: 0,
@@ -764,9 +882,11 @@ mod tests {
 		let (primary, p, _) = question_server(2, |_| 401);
 		let (fallback, f, _) = question_server(3, |_| 200);
 		let mut client = chunk_client(primary, Some(1));
-		client
-			.providers
-			.push(Provider { url: fallback, auth: Some("Bearer fallback".into()) });
+		client.providers.push(Provider {
+			endpoint: Endpoint::Typesafe,
+			url:      fallback,
+			auth:     Some("Bearer fallback".into()),
+		});
 		let response = client.system_one(&Value::Null, &noul_questions(3)).unwrap();
 		assert_eq!(response.answers.len(), 3);
 		assert_eq!(response.usage.input_tokens, 330);

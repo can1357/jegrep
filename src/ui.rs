@@ -287,13 +287,23 @@ impl Ui {
 		*self.cur_dir.borrow_mut() = None;
 	}
 
-	pub fn banner(&self, query: &str, root: &str, model: &str, p: usize, n: usize, cap: usize) {
+	/// `route` names the providers in the order they are tried.
+	pub fn banner(
+		&self,
+		query: &str,
+		root: &str,
+		model: &str,
+		route: &str,
+		p: usize,
+		n: usize,
+		cap: usize,
+	) {
 		self.line(&format!(
 			"{} {}  {}  {}",
 			self.bold("jegrep"),
 			self.cyan(&format!("\"{query}\"")),
 			self.dim(&format!("in {root}")),
-			self.dim(&format!("· {model} · P={p} N={n} cap={cap}")),
+			self.dim(&format!("· {model} via {route} · P={p} N={n} cap={cap}")),
 		));
 		if self.progress == Progress::Live && !self.is_live() {
 			let live = Arc::new(Live::new(self.color));

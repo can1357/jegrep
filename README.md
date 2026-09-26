@@ -56,10 +56,17 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
    ```
 
    By default OpenRouter is preferred when its key exists, otherwise TypeSafe is used.
-   Pin one with `--endpoint openrouter` / `--endpoint typesafe`. With both keys set,
+   Order them with `--endpoint openrouter` / `--endpoint typesafe`. With both keys set,
    auth/credit failures (401/402/403), timeouts (408), rate limits (429), server
    errors (5xx), transport failures, and invalid responses automatically fail over
    to the other provider. Other request errors (e.g. 400/422) are returned as-is.
+
+   `--endpoint` is a preference, not a guarantee: the other account can still be
+   billed after a failover. To refuse that, use `--only typesafe` /
+   `--only openrouter`: the named key must resolve and a failing request is an
+   error. Every run names its providers in the banner (`jev-latest via openrouter
+   → typesafe`), and the footer and `--json` `stats.provider` report which one
+   actually served it.
 
 3. **Search**
 
@@ -147,7 +154,8 @@ jegrep "how is the database connection pooled?"
 | `--ranges <n>` | Heatmap line ranges per file (whole-file strategies¹) | `16` |
 | `--min-hits <n>` | Stop lowering thresholds once this many hits exist (whole-file strategies¹) | `1` |
 | `-k`, `--keywords <list>` | Extra keywords for the lexical scan (`cascade`, `window`, `paged-grep*`) | derived |
-| `--endpoint <provider>` | `openrouter` \| `typesafe` (automatic by default) \| `local` | auto |
+| `--endpoint <provider>` | Preferred provider: `openrouter` \| `typesafe` \| `local`; fails over between hosted keys | auto |
+| `--only <provider>` | Exactly this provider: error if its key is absent or a request fails, never fail over | unset |
 | `--model <id>` | Jev model id or alias | `jev-latest` |
 | `--hidden` | Include dot-files and dot-folders | `false` |
 | `--tree` | Print the annotated exploration tree | `false` |
@@ -263,7 +271,9 @@ noise and obvious key material, not a secret scanner — a token pasted into
   judgments reopen — but you can also pass an explicit `-t 0.3,0.1`.
 - **Weird results?** Re-run with `--verbose` and `--tree` to see every judgment.
 - **Auth errors?** Check the right key is set (`OPENROUTER_API_KEY` /
-  `TYPESAFE_API_KEY`) or pin `--endpoint` to the provider you meant.
+  `TYPESAFE_API_KEY`) or pin `--only` to the provider you meant.
+- **Billed on the wrong account?** `--endpoint` only orders providers; the
+  footer's `via …` shows who served the run. Use `--only` to forbid failover.
 - **Slow or pricey?** Lower `-n`/`--max-batch`, raise `-t`, or try `-s beam`/`budget`.
 
 ## Building from Source

@@ -92,6 +92,8 @@ pub struct Ctx {
 	pub opts:    Opts,
 	pub tree:    Tree,
 	pub pool:    Pool,
+	/// The pool's client, kept for reporting which provider served the run.
+	pub client:  Arc<Client>,
 	pub ui:      Ui,
 	pub stats:   Stats,
 	pub started: Instant,
@@ -114,11 +116,12 @@ impl Ctx {
 			max_bytes: opts.bytes,
 			ranges:    opts.ranges,
 		});
-		let pool = Pool::new(client, opts.parallel, fopts);
+		let pool = Pool::new(Arc::clone(&client), opts.parallel, fopts);
 		Ok(Self {
 			opts,
 			tree,
 			pool,
+			client,
 			ui,
 			stats: Stats::default(),
 			started: Instant::now(),

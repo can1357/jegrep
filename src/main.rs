@@ -74,9 +74,13 @@ struct Cli {
 	#[arg(long, value_name = "N")]
 	min_hits:        Option<usize>,
 	/// Preferred API provider (default: `OpenRouter` when its key exists). Fails
-	/// over if both keys exist.
-	#[arg(long, value_enum)]
+	/// over if both keys exist; see --only to forbid that.
+	#[arg(long, value_enum, conflicts_with = "only")]
 	endpoint:        Option<jev::Endpoint>,
+	/// Use exactly this provider: error if its key is absent or a request
+	/// fails, never fail over to the other account.
+	#[arg(long, value_enum, value_name = "ENDPOINT")]
+	only:            Option<jev::Endpoint>,
 	/// Jev model id or alias.
 	#[arg(long, default_value = "jev-latest")]
 	model:           String,
@@ -192,7 +196,11 @@ fn main() {
 		ui.fatal("thresholds must be probabilities in 0..=1");
 		std::process::exit(2);
 	}
-	let client = match jev::Client::new(cli.endpoint, cli.model.clone()) {
+	let route = match cli.only {
+		Some(endpoint) => jev::Route::Only(endpoint),
+		None => jev::Route::Prefer(cli.endpoint),
+	};
+	let client = match jev::Client::new(route, cli.model.clone()) {
 		Ok(k) => k,
 		Err(e) => {
 			ui.fatal(&e);
@@ -268,6 +276,7 @@ fn main() {
 		query,
 		&ctx.tree.root.display().to_string(),
 		&cli.model,
+		&ctx.client.route(),
 		ctx.opts.parallel,
 		ctx.opts.batch,
 		ctx.opts.max_batch,

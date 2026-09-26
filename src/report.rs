@@ -98,6 +98,8 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 				  "input_tokens": s.input_tokens,
 				  "output_tokens": s.output_tokens,
 				  "retries": crate::jev::RETRIES.load(std::sync::atomic::Ordering::Relaxed),
+				  "provider": ctx.client.active().name(),
+				  "failed_over": ctx.client.failed_over(),
 				  "waves": s.waves,
 				  "api_ms": s.api_time.as_millis(),
 				  "entries_judged": s.judged,
@@ -199,7 +201,7 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 		"{}",
 		ui.dim(&format!(
 			"listed {listed} · judged {} · expanded {} dirs · read {} files ({}){} · {} requests{}{} \
-			 · {} tokens · ${:.4} · {:.1}s wall / {:.1}s api",
+			 via {}{} · {} tokens · ${:.4} · {:.1}s wall / {:.1}s api",
 			s.judged,
 			s.expanded,
 			s.files_read,
@@ -222,6 +224,12 @@ pub fn print(ctx: &Ctx, json: bool, tree: bool, compact: bool) {
 				} else {
 					String::new()
 				}
+			},
+			ctx.client.active().name(),
+			if ctx.client.failed_over() {
+				" (failed over)"
+			} else {
+				""
 			},
 			human_count(s.input_tokens),
 			s.usd(),
