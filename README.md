@@ -17,7 +17,7 @@ Natural-language search that works like `grep`. No embeddings, no index, no daem
 - **Precise:** Returns files *and* line ranges as `dirname/filename:first-last`
   references, ready to paste into an editor, with original line numbers and
   merged adjacent passages.
-- **Cheap:** Jev bills $0.042 per million input tokens, output free. A typical search over a few thousand files runs **$0.01–0.03**.
+- **Cheap:** Jev bills $0.042 per million input tokens, output free. A typical search over a few thousand files runs **~$0.005**.
 - **Agent-Ready:** `--json` for scripts and coding agents, `--compact` for a token-lean digest, plus a benchmark harness for regressions.
 
 ## Quick Start
