@@ -1,6 +1,6 @@
 [package]
 name = "jegrep"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 description = "Semantic grep: find code by describing what you're looking for, powered by Jev."
 license = "MIT"
